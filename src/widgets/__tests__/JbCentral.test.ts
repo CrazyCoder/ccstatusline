@@ -23,7 +23,7 @@ import { JbCentralUsageWidget } from '../JbCentralUsage';
 import { JbCentralUsagePercentWidget } from '../JbCentralUsagePercent';
 
 const SAMPLE: JbCentralData = {
-    account: 'serge@jetbrains.com',
+    account: 'you@jetbrains.com',
     plan: 'JetBrains AI Ultimate',
     usage: '$3.96',
     quota: '$200.00',
@@ -41,7 +41,7 @@ interface WidgetCase {
 }
 
 const CASES: WidgetCase[] = [
-    { name: 'account', widget: new JbCentralAccountWidget(), labeled: 'Account: serge@jetbrains.com', raw: 'serge@jetbrains.com' },
+    { name: 'account', widget: new JbCentralAccountWidget(), labeled: 'Account: you@jetbrains.com', raw: 'you@jetbrains.com' },
     { name: 'plan', widget: new JbCentralPlanWidget(), labeled: 'Plan: JetBrains AI Ultimate', raw: 'JetBrains AI Ultimate' },
     { name: 'usage', widget: new JbCentralUsageWidget(), labeled: 'Usage: $3.96', raw: '$3.96' },
     { name: 'quota', widget: new JbCentralQuotaWidget(), labeled: 'Quota: $200.00', raw: '$200.00' },

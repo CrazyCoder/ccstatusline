@@ -19,7 +19,7 @@ export class JbCentralAccountWidget implements Widget {
     }
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
-        return renderJbCentralField(item, context, 'Account: ', 'serge@jetbrains.com', data => data.account);
+        return renderJbCentralField(item, context, 'Account: ', 'you@jetbrains.com', data => data.account);
     }
 
     supportsRawValue(): boolean { return true; }

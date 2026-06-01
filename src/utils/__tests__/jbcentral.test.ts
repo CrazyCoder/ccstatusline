@@ -12,7 +12,7 @@ import {
     prefetchJbCentralDataIfNeeded
 } from '../jbcentral';
 
-const SAMPLE_OUTPUT = `serge@jetbrains.com · JetBrains AI Ultimate
+const SAMPLE_OUTPUT = `you@jetbrains.com · JetBrains AI Ultimate
 
 Usage: $3.96 / $200.00 (2.0%)
 Remaining: $196.04
@@ -31,7 +31,7 @@ function lines(...types: string[]): WidgetItem[][] {
 describe('parseJbCentralOutput', () => {
     it('parses every field from the CLI output', () => {
         expect(parseJbCentralOutput(SAMPLE_OUTPUT)).toEqual({
-            account: 'serge@jetbrains.com',
+            account: 'you@jetbrains.com',
             plan: 'JetBrains AI Ultimate',
             usage: '$3.96',
             quota: '$200.00',
@@ -42,10 +42,10 @@ describe('parseJbCentralOutput', () => {
     });
 
     it('strips ANSI color codes before parsing', () => {
-        const colored = '\x1b[1mserge@jetbrains.com\x1b[0m · \x1b[36mJetBrains AI Ultimate\x1b[0m\n\n'
+        const colored = '\x1b[1myou@jetbrains.com\x1b[0m · \x1b[36mJetBrains AI Ultimate\x1b[0m\n\n'
             + 'Usage: \x1b[33m$3.96\x1b[0m / $200.00 (2.0%)\nRemaining: $196.04\nResets: Jun 30, 2026\n';
         const parsed = parseJbCentralOutput(colored);
-        expect(parsed.account).toBe('serge@jetbrains.com');
+        expect(parsed.account).toBe('you@jetbrains.com');
         expect(parsed.plan).toBe('JetBrains AI Ultimate');
         expect(parsed.usage).toBe('$3.96');
         expect(parsed.usagePercent).toBe('2.0%');
