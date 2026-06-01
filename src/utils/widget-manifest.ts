@@ -95,7 +95,15 @@ export const WIDGET_MANIFEST: WidgetManifestEntry[] = [
     { type: 'worktree-name', create: () => new widgets.GitWorktreeNameWidget() },
     { type: 'worktree-branch', create: () => new widgets.GitWorktreeBranchWidget() },
     { type: 'worktree-original-branch', create: () => new widgets.GitWorktreeOriginalBranchWidget() },
-    { type: 'compaction-counter', create: () => new widgets.CompactionCounterWidget() }
+    { type: 'compaction-counter', create: () => new widgets.CompactionCounterWidget() },
+    { type: 'jbcentral-account', create: () => new widgets.JbCentralAccountWidget() },
+    { type: 'jbcentral-plan', create: () => new widgets.JbCentralPlanWidget() },
+    { type: 'jbcentral-usage', create: () => new widgets.JbCentralUsageWidget() },
+    { type: 'jbcentral-quota', create: () => new widgets.JbCentralQuotaWidget() },
+    { type: 'jbcentral-usage-percent', create: () => new widgets.JbCentralUsagePercentWidget() },
+    { type: 'jbcentral-remaining', create: () => new widgets.JbCentralRemainingWidget() },
+    { type: 'jbcentral-reset-date', create: () => new widgets.JbCentralResetDateWidget() },
+    { type: 'jbcentral-reset-days', create: () => new widgets.JbCentralResetDaysWidget() }
 ];
 
 export const LAYOUT_WIDGET_MANIFEST: LayoutWidgetManifestEntry[] = [

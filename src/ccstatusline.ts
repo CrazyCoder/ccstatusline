@@ -24,6 +24,7 @@ import {
 } from './utils/config';
 import { calculateContextPercentageMetrics } from './utils/context-percentage';
 import { handleHookInput } from './utils/hook-handler';
+import { prefetchJbCentralDataIfNeeded } from './utils/jbcentral';
 import {
     getSessionDuration,
     getSpeedMetricsCollection,
@@ -127,6 +128,7 @@ async function renderMultipleLines(data: StatusJSON) {
     }
 
     const usageData = await prefetchUsageDataIfNeeded(lines, data);
+    const jbCentralData = prefetchJbCentralDataIfNeeded(lines);
 
     let speedMetrics: SpeedMetrics | null = null;
     let windowedSpeedMetrics: Record<string, SpeedMetrics> | null = null;
@@ -172,6 +174,7 @@ async function renderMultipleLines(data: StatusJSON) {
         speedMetrics,
         windowedSpeedMetrics,
         usageData,
+        jbCentralData,
         sessionDuration,
         skillsMetrics,
         compactionData: hasCompactionWidget ? { count: compactionCount } : null,

@@ -23,6 +23,17 @@ export interface RenderUsageData {
     error?: 'no-credentials' | 'timeout' | 'rate-limited' | 'api-error' | 'parse-error';
 }
 
+export interface JbCentralData {
+    account?: string;
+    plan?: string;
+    usage?: string;
+    quota?: string;
+    usagePercent?: string;
+    remaining?: string;
+    resetDate?: string;
+    resetDays?: number;
+}
+
 export interface CompactionData { count: number }
 
 export interface RenderContext {
@@ -31,6 +42,7 @@ export interface RenderContext {
     speedMetrics?: SpeedMetrics | null;
     windowedSpeedMetrics?: Record<string, SpeedMetrics> | null;
     usageData?: RenderUsageData | null;
+    jbCentralData?: JbCentralData | null;
     sessionDuration?: string | null;
     blockMetrics?: BlockMetrics | null;
     skillsMetrics?: SkillsMetrics | null;
