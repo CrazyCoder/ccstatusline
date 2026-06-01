@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    if: github.repository == 'sirmalloc/ccstatusline'
+    if: github.repository == 'CrazyCoder/ccstatusline'
     name: Publish to npm
     runs-on: ubuntu-latest
     steps:
@@ -25,12 +25,14 @@ jobs:
       - run: bun install
       - run: bun run lint
       - run: bun test
+      # npm >= 11.5.1 is required for OIDC trusted publishing (token-less publish + provenance)
+      - run: npm install -g npm@latest
       - run: npm publish
       - name: Create GitHub release
         run: >
           gh release create "$GITHUB_REF_NAME"
           --title "$GITHUB_REF_NAME"
           --generate-notes
-          --notes "Published to npm: https://www.npmjs.com/package/ccstatusline"
+          --notes "Published to npm: https://www.npmjs.com/package/ccstatusline-jb"
         env:
           GH_TOKEN: ${{ github.token }}

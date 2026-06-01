@@ -1,7 +1,7 @@
 {
-  "name": "ccstatusline",
+  "name": "ccstatusline-jb",
   "version": "2.2.19",
-  "description": "A customizable status line formatter for Claude Code CLI",
+  "description": "A customizable status line formatter for Claude Code CLI — JetBrains fork of ccstatusline, adds JetBrains Central quota widgets",
   "module": "src/ccstatusline.ts",
   "type": "module",
   "bin": {
@@ -10,6 +10,10 @@
   "files": [
     "dist/"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "start": "bun run src/ccstatusline.ts",
     "build": "rm -rf dist/* ; bun build src/ccstatusline.ts --target=node --outfile=dist/ccstatusline.js --target-version=14",
@@ -69,7 +73,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sirmalloc/ccstatusline.git"
+    "url": "git+https://github.com/CrazyCoder/ccstatusline.git"
   },
   "engines": {
     "node": ">=14.0.0"
