@@ -1,9 +1,7 @@
 import {
-    afterEach,
     describe,
     expect,
-    it,
-    vi
+    it
 } from 'vitest';
 
 import type { WidgetItem } from '../../types/Widget';
@@ -85,24 +83,18 @@ describe('prefetchJbCentralDataIfNeeded', () => {
 });
 
 describe('computeResetDays', () => {
-    afterEach(() => {
-        vi.useRealTimers();
-    });
+    const now = new Date(2026, 5, 1, 12, 0, 0).getTime(); // Jun 1, 2026 12:00 local
 
     it('returns undefined for missing or unparseable dates', () => {
-        expect(computeResetDays(undefined)).toBeUndefined();
-        expect(computeResetDays('not a date')).toBeUndefined();
+        expect(computeResetDays(undefined, now)).toBeUndefined();
+        expect(computeResetDays('not a date', now)).toBeUndefined();
     });
 
     it('counts whole days remaining until the reset date', () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date(2026, 5, 1, 12, 0, 0));
-        expect(computeResetDays('Jun 30, 2026')).toBe(29);
+        expect(computeResetDays('Jun 30, 2026', now)).toBe(29);
     });
 
     it('clamps past reset dates to zero', () => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date(2026, 5, 1, 12, 0, 0));
-        expect(computeResetDays('Jan 1, 2020')).toBe(0);
+        expect(computeResetDays('Jan 1, 2020', now)).toBe(0);
     });
 });

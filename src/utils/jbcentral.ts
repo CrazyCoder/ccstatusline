@@ -51,7 +51,7 @@ function isEmptyData(data: JbCentralCachedFields): boolean {
     return Object.keys(data).length === 0;
 }
 
-export function computeResetDays(resetDate: string | undefined): number | undefined {
+export function computeResetDays(resetDate: string | undefined, now: number = Date.now()): number | undefined {
     if (!resetDate) {
         return undefined;
     }
@@ -61,7 +61,7 @@ export function computeResetDays(resetDate: string | undefined): number | undefi
         return undefined;
     }
 
-    return Math.max(0, Math.ceil((resetMs - Date.now()) / MS_PER_DAY));
+    return Math.max(0, Math.ceil((resetMs - now) / MS_PER_DAY));
 }
 
 function withResetDays(data: JbCentralCachedFields): JbCentralData {
