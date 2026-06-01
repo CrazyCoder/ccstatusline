@@ -13,17 +13,17 @@ If you want the main project overview, return to [README.md](../README.md).
 irm bun.sh/install.ps1 | iex
 
 # Run ccstatusline
-bunx -y ccstatusline@latest
+bunx -y ccstatusline-jb@latest
 ```
 
 ### Option 2: Using Node.js
 
 ```powershell
 # Using npm
-npx -y ccstatusline@latest
+npx -y ccstatusline-jb@latest
 ```
 
-These commands launch the configuration TUI. To pin the install, start the TUI with `bunx -y ccstatusline@latest` or `npx -y ccstatusline@latest`, then choose **Pinned global install**. The TUI installs the active ccstatusline version globally with Bun or npm and configures Claude Code to run `ccstatusline`. After a pinned install, you can run `ccstatusline` directly to launch the TUI in the future.
+These commands launch the configuration TUI. To pin the install, start the TUI with `bunx -y ccstatusline-jb@latest` or `npx -y ccstatusline-jb@latest`, then choose **Pinned global install**. The TUI installs the active ccstatusline version globally with Bun or npm and configures Claude Code to run `ccstatusline`. After a pinned install, you can run `ccstatusline` directly to launch the TUI in the future.
 
 ## Claude Code Integration
 
@@ -45,7 +45,7 @@ $env:CLAUDE_CONFIG_DIR="C:\custom\path\.claude"
 {
   "statusLine": {
     "type": "command",
-    "command": "bunx -y ccstatusline@latest",
+    "command": "bunx -y ccstatusline-jb@latest",
     "padding": 0,
     "refreshInterval": 10
   }
@@ -58,7 +58,7 @@ $env:CLAUDE_CONFIG_DIR="C:\custom\path\.claude"
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@latest",
+    "command": "npx -y ccstatusline-jb@latest",
     "padding": 0,
     "refreshInterval": 10
   }
@@ -139,7 +139,7 @@ winget install Git.Git
 
 ```powershell
 # Use non-global installation (recommended)
-npx -y ccstatusline@latest
+npx -y ccstatusline-jb@latest
 
 # Or run PowerShell as Administrator for global install
 ```
@@ -170,7 +170,7 @@ Add-MpPreference -ExclusionPath "$env:USERPROFILE\.bun\bin"
 # Install in WSL Ubuntu/Debian
 curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
-bunx -y ccstatusline@latest
+bunx -y ccstatusline-jb@latest
 ```
 
 **WSL benefits:**

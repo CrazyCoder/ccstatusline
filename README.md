@@ -14,12 +14,12 @@
 **🎨 A highly customizable status line formatter for Claude Code CLI**
 *Display model info, git branch, token usage, and other metrics in your terminal*
 
-[![npm version](https://img.shields.io/npm/v/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
-[![npm downloads](https://img.shields.io/npm/dm/ccstatusline.svg)](https://www.npmjs.com/package/ccstatusline)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sirmalloc/ccstatusline/blob/main/LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/ccstatusline.svg)](https://nodejs.org)
-[![install size](https://packagephobia.com/badge?p=ccstatusline)](https://packagephobia.com/result?p=ccstatusline)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/sirmalloc/ccstatusline/graphs/commit-activity)
+[![npm version](https://img.shields.io/npm/v/ccstatusline-jb.svg)](https://www.npmjs.com/package/ccstatusline-jb)
+[![npm downloads](https://img.shields.io/npm/dm/ccstatusline-jb.svg)](https://www.npmjs.com/package/ccstatusline-jb)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/CrazyCoder/ccstatusline/blob/main/LICENSE)
+[![Node.js Version](https://img.shields.io/node/v/ccstatusline-jb.svg)](https://nodejs.org)
+[![install size](https://packagephobia.com/badge?p=ccstatusline-jb)](https://packagephobia.com/result?p=ccstatusline-jb)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/CrazyCoder/ccstatusline/graphs/commit-activity)
 
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 [![ClaudeLog - A comprehensive knowledge base for Claude](https://claudelog.com/img/claude_log_badge.svg)](https://claudelog.com/)
@@ -32,6 +32,7 @@
 
 ## 📚 Table of Contents
 
+- [JetBrains Fork](#-jetbrains-fork)
 - [Recent Updates](#-recent-updates)
 - [Features](#-features)
 - [Localizations](#-localizations)
@@ -44,6 +45,31 @@
 - [Related Projects](#-related-projects)
 
 <br />
+
+## 🧩 JetBrains Fork
+
+This is a fork of [`sirmalloc/ccstatusline`](https://github.com/sirmalloc/ccstatusline), published to npm as **[`ccstatusline-jb`](https://www.npmjs.com/package/ccstatusline-jb)**. It stays in sync with upstream and adds one extra widget category for JetBrains tooling.
+
+### JetBrains Central widgets
+
+Eight widgets that surface your JetBrains AI quota, parsed from the `jbcentral quota` CLI:
+
+| Widget | Example |
+|--------|---------|
+| Account | `you@jetbrains.com` |
+| Plan | `JetBrains AI Ultimate` |
+| Usage | `$3.96` |
+| Quota | `$200.00` |
+| Usage % | `2.0%` |
+| Remaining | `$196.04` |
+| Reset Date | `Jun 30, 2026` |
+| Days Until Reset | `29d` |
+
+The `jbcentral` CLI is invoked **only** when at least one of these widgets is in your status line; its output is parsed once and cached for 180 seconds, so it never runs on every status-line render. The widgets appear under a **JetBrains Central** group in the widget picker.
+
+> The installed command stays **`ccstatusline`** — only the npm package name differs (`ccstatusline-jb`) — so existing hooks and `settings.json` integrations keep working. If you also have upstream `ccstatusline` installed globally, only one of them can own the global `ccstatusline` command.
+
+Everything below this section is inherited from upstream.
 
 ## 🆕 Recent Updates
 
@@ -245,10 +271,10 @@ The localizations in this section are third-party forks maintained outside this 
 
 ```bash
 # Run the configuration TUI with npm
-npx -y ccstatusline@latest
+npx -y ccstatusline-jb@latest
 
 # Or with Bun (faster)
-bunx -y ccstatusline@latest
+bunx -y ccstatusline-jb@latest
 ```
 
 Both commands launch the same TUI. During the initial setup flow, choose **Pinned global install** if you want Claude Code to stay on the ccstatusline version you are running instead of following `@latest`; the TUI will install that version globally with npm or Bun and write the pinned `ccstatusline` command to Claude Code settings. After a pinned install, you can run `ccstatusline` directly to launch the TUI in the future.
@@ -290,7 +316,7 @@ When you install from the TUI, ccstatusline writes a `statusLine` command object
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@latest",
+    "command": "npx -y ccstatusline-jb@latest",
     "padding": 0,
     "refreshInterval": 10
   }
@@ -300,10 +326,10 @@ When you install from the TUI, ccstatusline writes a `statusLine` command object
 `refreshInterval` is written only when your Claude Code version supports it (>=2.1.97). The TUI can set it to `1-60` seconds, or remove it by leaving the input empty.
 
 Other supported command values are:
-- `bunx -y ccstatusline@latest`
+- `bunx -y ccstatusline-jb@latest`
 - `ccstatusline` (for self-managed/global installs)
 
-For pinned installs, launch the TUI with `npx -y ccstatusline@latest` or `bunx -y ccstatusline@latest`, then choose **Pinned global install**. The TUI pins the active version by installing it globally and writing `"command": "ccstatusline"` to `settings.json`; afterward, you can run `ccstatusline` directly to open the TUI.
+For pinned installs, launch the TUI with `npx -y ccstatusline-jb@latest` or `bunx -y ccstatusline-jb@latest`, then choose **Pinned global install**. The TUI pins the active version by installing it globally and writing `"command": "ccstatusline"` to `settings.json`; afterward, you can run `ccstatusline` directly to open the TUI.
 
 </details>
 
