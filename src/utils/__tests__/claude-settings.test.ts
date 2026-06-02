@@ -120,7 +120,7 @@ describe('isKnownCommand', () => {
     });
 
     it('should not match prefix that is a substring', () => {
-        expect(isKnownCommand('npx -y ccstatusline@latestFOO')).toBe(false);
+        expect(isKnownCommand('npx -y ccstatusline-jb@latestFOO')).toBe(false);
     });
 
     it('should match command containing ccstatusline.ts', () => {

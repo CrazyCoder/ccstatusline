@@ -26,18 +26,18 @@ const writeFile = fs.promises.writeFile;
 const mkdir = fs.promises.mkdir;
 
 export const CCSTATUSLINE_COMMANDS = {
-    AUTO_NPX: 'npx -y ccstatusline@latest',
-    AUTO_BUNX: 'bunx -y ccstatusline@latest',
+    AUTO_NPX: 'npx -y ccstatusline-jb@latest',
+    AUTO_BUNX: 'bunx -y ccstatusline-jb@latest',
     GLOBAL: 'ccstatusline',
     // Backward-compatible names for existing callers/tests.
-    NPM: 'npx -y ccstatusline@latest',
-    BUNX: 'bunx -y ccstatusline@latest',
+    NPM: 'npx -y ccstatusline-jb@latest',
+    BUNX: 'bunx -y ccstatusline-jb@latest',
     SELF_MANAGED: 'ccstatusline'
 };
 
 export const PINNED_INSTALL_COMMANDS = {
-    NPM: (version: string) => `npm install -g ccstatusline@${version}`,
-    BUN: (version: string) => `bun add -g ccstatusline@${version}`
+    NPM: (version: string) => `npm install -g ccstatusline-jb@${version}`,
+    BUN: (version: string) => `bun add -g ccstatusline-jb@${version}`
 };
 
 export type StatusLineCommandMode = 'auto-npx' | 'auto-bunx' | 'global';

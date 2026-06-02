@@ -45,7 +45,7 @@ type InstallStep = 'style' | 'manager';
 const AUTO_UPDATE_DESCRIPTION = 'Runs `@latest` through npx/bunx. Stays current automatically, with a small startup cost when the package runner checks or resolves the package. Because it follows the latest published package, pinned install is available if you prefer explicit updates.';
 
 function getPinnedDescription(currentVersion: string): string {
-    return `Installs \`ccstatusline@${currentVersion}\` globally and Claude Code runs \`ccstatusline\`. Fast on each render because Claude Code runs the installed ccstatusline binary directly. The version changes only when you update the global install.`;
+    return `Installs \`ccstatusline-jb@${currentVersion}\` globally and Claude Code runs \`ccstatusline\`. Fast on each render because Claude Code runs the installed ccstatusline binary directly. The version changes only when you update the global install.`;
 }
 
 function getStyleItems(currentVersion: string): ListEntry<InstallUpdateStyle>[] {

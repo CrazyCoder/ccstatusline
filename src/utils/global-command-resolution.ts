@@ -36,7 +36,7 @@ function splitCommandOutput(output: string): string[] {
 function isTransientBunxStatusLinePath(filePath: string): boolean {
     const normalized = filePath.replace(/\\/g, '/');
 
-    return /(?:^|\/)bunx-[^/]*ccstatusline@[^/]+\/node_modules\/\.bin\/ccstatusline(?:\.(?:cmd|ps1))?$/i.test(normalized);
+    return /(?:^|\/)bunx-[^/]*ccstatusline(?:-jb)?@[^/]+\/node_modules\/\.bin\/ccstatusline(?:\.(?:cmd|ps1))?$/i.test(normalized);
 }
 
 export function getPersistentCommandResolutionPaths(paths: string[]): string[] {

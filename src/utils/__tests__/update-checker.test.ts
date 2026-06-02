@@ -99,7 +99,7 @@ describe('update checker', () => {
             {
                 id: 'npm-global',
                 packageManager: 'npm',
-                command: 'npm install -g ccstatusline@2.3.0',
+                command: 'npm install -g ccstatusline-jb@2.3.0',
                 version: '2.3.0',
                 available: true
             }
@@ -123,7 +123,7 @@ describe('update checker', () => {
         if (result.status !== 'update-available') {
             return;
         }
-        expect(result.actions.map(action => action.command)).toEqual(['bun add -g ccstatusline@2.3.0']);
+        expect(result.actions.map(action => action.command)).toEqual(['bun add -g ccstatusline-jb@2.3.0']);
     });
 
     it('offers both global update actions when pinned metadata has no resolved package manager', () => {
@@ -183,7 +183,7 @@ describe('update checker', () => {
         await runGlobalPackageInstall('npm', '2.3.0', { platform: 'win32' });
 
         expect(execFileSpy.mock.calls[0]?.[0]).toBe('npm.cmd');
-        expect(execFileSpy.mock.calls[0]?.[1]).toEqual(['install', '-g', 'ccstatusline@2.3.0']);
+        expect(execFileSpy.mock.calls[0]?.[1]).toEqual(['install', '-g', 'ccstatusline-jb@2.3.0']);
     });
 
     it('does not offer global actions for auto-update installs', () => {
@@ -226,14 +226,14 @@ describe('update checker', () => {
             {
                 id: 'npm-global',
                 packageManager: 'npm',
-                command: 'npm install -g ccstatusline@2.3.0',
+                command: 'npm install -g ccstatusline-jb@2.3.0',
                 version: '2.3.0',
                 available: true
             },
             {
                 id: 'bun-global',
                 packageManager: 'bun',
-                command: 'bun add -g ccstatusline@2.3.0',
+                command: 'bun add -g ccstatusline-jb@2.3.0',
                 version: '2.3.0',
                 available: false
             }

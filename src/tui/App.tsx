@@ -200,8 +200,8 @@ function getPinnedMismatchItems(
             disabled: !canRunPackageManager,
             sublabel: canRunPackageManager ? undefined : `(${mismatch.packageManager} not installed)`,
             description: `Runs ${mismatch.packageManager === 'npm'
-                ? `npm install -g ccstatusline@${mismatch.runningVersion}`
-                : `bun add -g ccstatusline@${mismatch.runningVersion}`}`
+                ? `npm install -g ccstatusline-jb@${mismatch.runningVersion}`
+                : `bun add -g ccstatusline-jb@${mismatch.runningVersion}`}`
         });
     }
 
@@ -272,8 +272,8 @@ const PinnedVersionMismatchScreen: React.FC<PinnedVersionMismatchScreenProps> = 
 
 function getGlobalUninstallCommand(packageManager: GlobalPackageManager): string {
     return packageManager === 'npm'
-        ? 'npm uninstall -g ccstatusline'
-        : 'bun remove -g ccstatusline';
+        ? 'npm uninstall -g ccstatusline-jb'
+        : 'bun remove -g ccstatusline-jb';
 }
 
 function buildUninstallConfirmMessage(selection: UninstallSelection): string {

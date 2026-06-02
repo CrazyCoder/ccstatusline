@@ -75,7 +75,7 @@ describe('global command resolution', () => {
 
     it('ignores transient bunx status line shims when resolving global commands', () => {
         mockExecFileSync({
-            'which -a ccstatusline': '/var/folders/demo/T/bunx-501-ccstatusline@latest/node_modules/.bin/ccstatusline\n/Users/alice/.bun/bin/ccstatusline\n',
+            'which -a ccstatusline': '/var/folders/demo/T/bunx-501-ccstatusline-jb@latest/node_modules/.bin/ccstatusline\n/Users/alice/.bun/bin/ccstatusline\n',
             'bun pm bin -g': '/Users/alice/.bun/bin\n'
         });
 

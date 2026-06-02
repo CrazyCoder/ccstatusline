@@ -182,7 +182,7 @@ function getNpmGlobalPackageVersion(platform: NodeJS.Platform): string | null {
         }).trim();
 
         return rootDir
-            ? readPackageVersion(appendPathSegment(appendPathSegment(rootDir, 'ccstatusline'), 'package.json'))
+            ? readPackageVersion(appendPathSegment(appendPathSegment(rootDir, 'ccstatusline-jb'), 'package.json'))
             : null;
     } catch {
         return null;
@@ -213,7 +213,7 @@ function getBunGlobalPackageVersion(binDir: string | null): string | null {
                     ),
                     'node_modules'
                 ),
-                'ccstatusline'
+                'ccstatusline-jb'
             ),
             'package.json'
         )
@@ -351,8 +351,8 @@ export function runGlobalPackageUninstall(
 ): Promise<void> {
     const executable = getPackageManagerExecutable(packageManager, platform);
     const args = packageManager === 'npm'
-        ? ['uninstall', '-g', 'ccstatusline']
-        : ['remove', '-g', 'ccstatusline'];
+        ? ['uninstall', '-g', 'ccstatusline-jb']
+        : ['remove', '-g', 'ccstatusline-jb'];
 
     return new Promise((resolve, reject) => {
         execFile(executable, args, { timeout: GLOBAL_PACKAGE_TIMEOUT_MS, windowsHide: true }, (error) => {

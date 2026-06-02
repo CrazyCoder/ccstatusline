@@ -212,9 +212,9 @@ describe('InstallMenu', () => {
             await flushInk();
 
             const output = stdout.getOutput();
-            expect(output).toContain('npm install -g ccstatusline@2.2.13');
+            expect(output).toContain('npm install -g ccstatusline-jb@2.2.13');
             expect(output).not.toContain('(npm not installed)');
-            expect(output).toContain('bun add -g ccstatusline@2.2.13');
+            expect(output).toContain('bun add -g ccstatusline-jb@2.2.13');
             expect(output).not.toContain('(bun not installed)');
         } finally {
             instance.unmount();
