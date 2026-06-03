@@ -3,7 +3,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import type { JbCentralData } from '../types/RenderContext';
+import type {
+    JbCentralData,
+    JbCentralError
+} from '../types/RenderContext';
 import type { WidgetItem } from '../types/Widget';
 
 import { getVisibleText } from './ansi';
@@ -32,8 +35,45 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
 
 // The persisted fields are the raw strings parsed from the CLI. `resetDays` is
 // intentionally NOT cached — it is recomputed from `resetDate` on every read so
-// the countdown stays accurate even when served from a stale cache.
-type JbCentralCachedFields = Omit<JbCentralData, 'resetDays'>;
+// the countdown stays accurate even when served from a stale cache. A cache
+// entry may instead hold only `{ error }` — a short-lived diagnostic marker
+// written when a fetch fails, so the widget keeps showing why between renders.
+export type JbCentralCachedFields = Omit<JbCentralData, 'resetDays'>;
+
+// The string fields a successful `jbcentral quota` parse produces. Used to tell
+// real cached data apart from an `{ error }` marker.
+const REAL_DATA_FIELDS: (keyof JbCentralCachedFields)[] = [
+    'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'resetDate'
+];
+
+function hasGoodData(data: JbCentralCachedFields): boolean {
+    return !data.error && REAL_DATA_FIELDS.some(field => data[field] !== undefined);
+}
+
+// Map a thrown `execFileSync` failure to a diagnostic error code so the widget
+// can show *why* it has no data instead of silently rendering nothing. A 5s
+// timeout (slow `jbcentral quota`, e.g. a firewalled telemetry call) surfaces
+// as `killed`/SIGTERM; a missing binary as ENOENT; anything else (non-zero
+// exit, auth failure) as a generic CLI error.
+export function classifyQuotaError(err: unknown): JbCentralError {
+    const e = err as { code?: string; killed?: boolean; signal?: string };
+    if (e.code === 'ENOENT') {
+        return 'not-found';
+    }
+    if (e.killed || e.signal === 'SIGTERM' || e.code === 'ETIMEDOUT') {
+        return 'timeout';
+    }
+    return 'cli-error';
+}
+
+export function getJbCentralErrorMessage(error: JbCentralError): string {
+    switch (error) {
+        case 'not-found': return '[jbcentral not found]';
+        case 'timeout': return '[Timeout]';
+        case 'cli-error': return '[CLI error]';
+        case 'parse-error': return '[Parse Error]';
+    }
+}
 
 export function hasJbCentralWidgets(lines: WidgetItem[][]): boolean {
     return lines.some(line => line.some(item => JB_CENTRAL_WIDGET_TYPES.has(item.type)));
@@ -105,7 +145,7 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
     return result;
 }
 
-interface ReadCacheResult {
+export interface ReadCacheResult {
     data: JbCentralCachedFields;
     ageSeconds: number;
 }
@@ -150,48 +190,95 @@ function touchLock(): void {
     }
 }
 
-function runJbCentralQuota(): string | null {
+export type QuotaResult = { ok: true; output: string } | { ok: false; error: JbCentralError };
+
+function runJbCentralQuota(): QuotaResult {
     try {
-        return execFileSync('jbcentral', ['quota'], {
+        const output = execFileSync('jbcentral', ['quota'], {
             encoding: 'utf8',
             timeout: CLI_TIMEOUT_MS,
             stdio: ['ignore', 'pipe', 'ignore'],
             windowsHide: true
         });
-    } catch {
-        // Not installed (ENOENT), timed out, or non-zero exit — fall back to cache.
-        return null;
+        return { ok: true, output };
+    } catch (err) {
+        // Not installed (ENOENT), timed out (5s — e.g. a firewalled telemetry
+        // call), or non-zero exit. Classify it so the widget can show why.
+        return { ok: false, error: classifyQuotaError(err) };
     }
 }
 
-export function fetchJbCentralData(): JbCentralData | null {
-    const now = Math.floor(Date.now() / 1000);
-    const cached = readCache(now);
+// I/O seam for the fetch orchestration — injected so the decision logic can be
+// unit-tested without touching the filesystem or spawning a process.
+export interface JbCentralFetchIO {
+    now: number;
+    readCache: (now: number) => ReadCacheResult | null;
+    writeCache: (data: JbCentralCachedFields) => void;
+    isLockActive: (now: number) => boolean;
+    touchLock: () => void;
+    runQuota: () => QuotaResult;
+}
 
-    // Fresh cache — no CLI call.
-    if (cached && cached.ageSeconds < CACHE_MAX_AGE) {
+// Prefer real stale data over surfacing an error; otherwise persist the error
+// marker (short-lived, behind the lock) so the diagnostic survives between the
+// per-render invocations of ccstatusline instead of flickering.
+function staleDataOrError(
+    cached: ReadCacheResult | null,
+    error: JbCentralError,
+    writeCache: (data: JbCentralCachedFields) => void
+): JbCentralData {
+    if (cached && hasGoodData(cached.data)) {
         return withResetDays(cached.data);
     }
 
-    // Stale cache but the CLI was tried recently — serve stale rather than respawn.
-    if (isLockActive(now)) {
-        return cached ? withResetDays(cached.data) : null;
+    writeCache({ error });
+    return { error };
+}
+
+export function resolveJbCentralData(io: JbCentralFetchIO): JbCentralData | null {
+    const cached = io.readCache(io.now);
+
+    // Fresh, real data — no CLI call.
+    if (cached && hasGoodData(cached.data) && cached.ageSeconds < CACHE_MAX_AGE) {
+        return withResetDays(cached.data);
     }
 
-    touchLock();
-
-    const rawOutput = runJbCentralQuota();
-    if (rawOutput === null) {
-        return cached ? withResetDays(cached.data) : null;
+    // The CLI was tried recently — serve whatever we have rather than respawn.
+    if (io.isLockActive(io.now)) {
+        if (cached && hasGoodData(cached.data)) {
+            return withResetDays(cached.data);
+        }
+        if (cached?.data.error) {
+            return { error: cached.data.error };
+        }
+        return null;
     }
 
-    const parsed = parseJbCentralOutput(rawOutput);
+    io.touchLock();
+
+    const result = io.runQuota();
+    if (!result.ok) {
+        return staleDataOrError(cached, result.error, io.writeCache);
+    }
+
+    const parsed = parseJbCentralOutput(result.output);
     if (isEmptyData(parsed)) {
-        return cached ? withResetDays(cached.data) : null;
+        return staleDataOrError(cached, 'parse-error', io.writeCache);
     }
 
-    writeCache(parsed);
+    io.writeCache(parsed);
     return withResetDays(parsed);
+}
+
+export function fetchJbCentralData(): JbCentralData | null {
+    return resolveJbCentralData({
+        now: Math.floor(Date.now() / 1000),
+        readCache,
+        writeCache,
+        isLockActive,
+        touchLock,
+        runQuota: runJbCentralQuota
+    });
 }
 
 export function prefetchJbCentralDataIfNeeded(lines: WidgetItem[][]): JbCentralData | null {

@@ -74,6 +74,16 @@ describe('JetBrains Central widgets', () => {
         expect(widget.render(item(), { jbCentralData: null }, DEFAULT_SETTINGS)).toBeNull();
     });
 
+    it.each(CASES)('renders $name as a bare diagnostic when the fetch errored', ({ widget }) => {
+        const context: RenderContext = { jbCentralData: { error: 'timeout' } };
+        expect(widget.render(item(), context, DEFAULT_SETTINGS)).toBe('[Timeout]');
+    });
+
+    it.each(CASES)('shows the diagnostic for $name even with rawValue enabled', ({ widget }) => {
+        const context: RenderContext = { jbCentralData: { error: 'not-found' } };
+        expect(widget.render(item(true), context, DEFAULT_SETTINGS)).toBe('[jbcentral not found]');
+    });
+
     it('all widgets report the JetBrains Central category', () => {
         for (const { widget } of CASES) {
             expect(widget.getCategory()).toBe('JetBrains Central');

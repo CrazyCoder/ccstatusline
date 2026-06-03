@@ -23,6 +23,8 @@ export interface RenderUsageData {
     error?: 'no-credentials' | 'timeout' | 'rate-limited' | 'api-error' | 'parse-error';
 }
 
+export type JbCentralError = 'not-found' | 'timeout' | 'cli-error' | 'parse-error';
+
 export interface JbCentralData {
     account?: string;
     plan?: string;
@@ -32,6 +34,7 @@ export interface JbCentralData {
     remaining?: string;
     resetDate?: string;
     resetDays?: number;
+    error?: JbCentralError;
 }
 
 export interface CompactionData { count: number }
