@@ -1,6 +1,6 @@
 {
   "name": "ccstatusline-jb",
-  "version": "2.2.22",
+  "version": "2.2.23",
   "description": "A customizable status line formatter for Claude Code CLI — JetBrains fork of ccstatusline, adds JetBrains Central quota widgets",
   "module": "src/ccstatusline.ts",
   "type": "module",
