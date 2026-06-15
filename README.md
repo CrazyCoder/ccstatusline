@@ -73,6 +73,15 @@ Everything below this section is inherited from upstream.
 
 ## 🆕 Recent Updates
 
+### v2.2.21 - Cache widgets, compaction details, extra usage currency, and package fixes
+
+- **🔣 Custom widget glyphs** - Git and JJ symbol widgets can override or suppress their built-in glyphs from the TUI.
+- **🔁 Compaction counter details** - `Compaction Counter` now counts explicit `compact_boundary` markers and can optionally show trigger splits plus tokens reclaimed.
+- **💸 Extra usage improvements** - Added `Extra Usage Used` and formats extra usage amounts with the billing currency reported by the usage API.
+- **📏 Custom command width context** - `Custom Command` widgets receive `terminal_width` in stdin JSON when ccstatusline can detect the terminal width.
+- **🧠 Prompt cache widgets** - Added `Cache Hit Rate`, `Cache Read`, and `Cache Write` widgets with turn/session scopes and hide-when-empty behavior.
+- **🔢 Token rounding fix** - Token counts from `999950` through `999999` now render as `1.0M` instead of `1000.0k`.
+
 ### v2.2.20 - Gradients, token accuracy, usage reliability, and Git PR/MR fixes
 
 - **🌈 Gradient colors** - Added per-widget and whole-line foreground gradients with named presets, custom hex stops, TUI picker support, and Powerline-aware rendering. Press `g` on the Edit Colors screen for widget gradients, or press `g` for Override FG Color in Global Overrides for a line-wide gradient.
@@ -117,7 +126,7 @@ Everything below this section is inherited from upstream.
 - **🧮 Git file status widgets** - Added `Git Staged Files`, `Git Unstaged Files`, `Git Untracked Files`, and `Git Clean Status` for file counts and clean/dirty state.
 - **🏷️ Clear context percentage labels** - `Context %` and `Context % (usable)` now label rendered values as used or left when toggling used/remaining mode.
 - **⚡ More Powerline caps** - The Powerline separator editor now supports more than three start/end caps.
-- **🧠 Thinking Effort updates** - Added `xhigh`, show `default` when no effort is set, mark unknown future effort levels with `?`, and track live status JSON plus `/effort` command changes.
+- **🧠 Thinking Effort updates** - Added `xhigh`, show `default` when no effort is set, mark unknown future effort levels with `?`, and track live status JSON plus `/effort` command changes. Claude Code reports Ultracode as `xhigh` in status line data.
 - **🧮 More accurate token counts** - Streaming duplicate JSONL entries are deduped so token widgets do not overcount live Claude Code output.
 - **🏷️ Cleaner model display** - The Model widget strips trailing context suffixes like `(1M context)`; use `Context Window` when you want the total window size shown.
 - **🧹 Cleaner empty-widget separators** - Manual separators now collapse around widgets that render empty, avoiding dangling separators when hide-when-empty widgets disappear.

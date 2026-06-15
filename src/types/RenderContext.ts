@@ -20,6 +20,7 @@ export interface RenderUsageData {
     extraUsageLimit?: number;
     extraUsageUsed?: number;
     extraUsageUtilization?: number;
+    extraUsageCurrency?: string;
     error?: 'no-credentials' | 'timeout' | 'rate-limited' | 'api-error' | 'parse-error';
 }
 
@@ -37,7 +38,11 @@ export interface JbCentralData {
     error?: JbCentralError;
 }
 
-export interface CompactionData { count: number }
+export interface CompactionData {
+    count: number;
+    byTrigger: { auto: number; manual: number; unknown: number };
+    tokensReclaimed: number;
+}
 
 export interface RenderContext {
     data?: StatusJSON;
