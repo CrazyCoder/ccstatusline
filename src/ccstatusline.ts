@@ -17,6 +17,7 @@ import {
     getCompactionStats
 } from './utils/compaction';
 import {
+    getConfigLoadError,
     initConfigPath,
     loadSettings,
     saveSettings
@@ -30,7 +31,9 @@ import {
 } from './utils/jsonl';
 import { advanceGlobalPowerlineThemeIndex } from './utils/powerline-theme-index';
 import {
+    buildConfigWarningBadge,
     calculateMaxWidthsFromPreRendered,
+    countPowerlineStartCapSlots,
     preRenderAllWidgets,
     renderStatusLine
 } from './utils/renderer';
@@ -92,6 +95,7 @@ async function ensureWindowsUtf8CodePage() {
 
 async function renderMultipleLines(data: StatusJSON) {
     const settings = await loadSettings();
+    const configError = getConfigLoadError();
 
     // Set global chalk level based on settings
     chalk.level = settings.colorLevel;
@@ -176,6 +180,8 @@ async function renderMultipleLines(data: StatusJSON) {
     // Render each line using pre-rendered content
     let globalSeparatorIndex = 0;
     let globalPowerlineThemeIndex = 0;
+    let globalPowerlineStartCapIndex = 0;
+    let configBadgePrepended = false;
     for (let i = 0; i < lines.length; i++) {
         const lineItems = lines[i];
         if (lineItems && lineItems.length > 0) {
@@ -184,14 +190,21 @@ async function renderMultipleLines(data: StatusJSON) {
                 ...context,
                 lineIndex: i,
                 globalSeparatorIndex,
-                globalPowerlineThemeIndex
+                globalPowerlineThemeIndex,
+                globalPowerlineStartCapIndex
             };
-            const line = renderStatusLine(lineItems, settings, lineContext, preRenderedWidgets, preCalculatedMaxWidths);
+            let line = renderStatusLine(lineItems, settings, lineContext, preRenderedWidgets, preCalculatedMaxWidths);
 
             // Only output the line if it has content (not just ANSI codes)
             // Strip ANSI codes to check if there's actual text
             const strippedLine = getVisibleText(line).trim();
             if (strippedLine.length > 0) {
+                if (configError && !configBadgePrepended) {
+                    // On the error path settings are always inMemoryDefaults(), whose separators render as ' | '.
+                    line = `${buildConfigWarningBadge(settings.colorLevel)} | ${line}`;
+                    configBadgePrepended = true;
+                }
+
                 // Replace all spaces with non-breaking spaces to prevent VSCode trimming
                 let outputLine = line.replace(/ /g, '\u00A0');
 
@@ -199,12 +212,20 @@ async function renderMultipleLines(data: StatusJSON) {
                 outputLine = '\x1b[0m' + outputLine;
                 console.log(outputLine);
 
-                globalSeparatorIndex = advanceGlobalSeparatorIndex(globalSeparatorIndex, lineItems);
+                globalSeparatorIndex = advanceGlobalSeparatorIndex(globalSeparatorIndex, lineItems, preRenderedWidgets);
+                if (settings.powerline.enabled) {
+                    globalPowerlineStartCapIndex += countPowerlineStartCapSlots(lineItems, preRenderedWidgets);
+                }
                 if (settings.powerline.enabled && settings.powerline.continueThemeAcrossLines) {
                     globalPowerlineThemeIndex = advanceGlobalPowerlineThemeIndex(globalPowerlineThemeIndex, preRenderedWidgets);
                 }
             }
         }
+    }
+
+    // Defensive fallback: if no content line was emitted, ensure the warning is not lost
+    if (configError && !configBadgePrepended) {
+        console.log('\x1b[0m' + buildConfigWarningBadge(settings.colorLevel).replace(/ /g, '\u00A0'));
     }
 
     // Check if there's an update message to display
