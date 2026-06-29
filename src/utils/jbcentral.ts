@@ -29,6 +29,7 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
     'jbcentral-quota',
     'jbcentral-usage-percent',
     'jbcentral-remaining',
+    'jbcentral-period-start',
     'jbcentral-reset-date',
     'jbcentral-reset-days'
 ]);
@@ -43,7 +44,7 @@ export type JbCentralCachedFields = Omit<JbCentralData, 'resetDays'>;
 // The string fields a successful `jbcentral quota` parse produces. Used to tell
 // real cached data apart from an `{ error }` marker.
 const REAL_DATA_FIELDS: (keyof JbCentralCachedFields)[] = [
-    'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'resetDate'
+    'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'periodStart', 'resetDate'
 ];
 
 function hasGoodData(data: JbCentralCachedFields): boolean {
@@ -136,10 +137,21 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
         result.remaining = remainingMatch[1];
     }
 
-    // "Resets: Jun 30, 2026"
+    // Legacy (jbcentral < 0.4.1): "Resets: Jun 30, 2026"
     const resetsMatch = /Resets:\s*(.+)/.exec(text);
     if (resetsMatch?.[1]) {
         result.resetDate = resetsMatch[1].trim();
+    }
+
+    // Current (jbcentral >= 0.4.1): "Quota period: Jun 1, 2026 - Jun 30, 2026".
+    // The period *end* is the reset date (kept under `resetDate` so the Reset
+    // Date / Days Until Reset widgets work unchanged across CLI versions); the
+    // *start* is surfaced separately. The date format is "MMM D, YYYY" — no
+    // internal hyphen — so the first " - " is an unambiguous start/end split.
+    const periodMatch = /Quota period:\s*(.+?)\s+-\s+(.+)/.exec(text);
+    if (periodMatch?.[1] && periodMatch[2]) {
+        result.periodStart = periodMatch[1].trim();
+        result.resetDate = periodMatch[2].trim();
     }
 
     return result;

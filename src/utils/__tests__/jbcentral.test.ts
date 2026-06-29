@@ -20,6 +20,8 @@ import {
     resolveJbCentralData
 } from '../jbcentral';
 
+// Legacy `jbcentral quota` output (< 0.4.1): the reset date is a single
+// "Resets:" line.
 const SAMPLE_OUTPUT = `you@jetbrains.com · JetBrains AI Ultimate
 
 Usage: $3.96 / $200.00 (2.0%)
@@ -32,12 +34,26 @@ Quota:  $3.96 / $200.00 used ($196.04 remaining)
 Resets: Jun 30, 2026
 `;
 
+// Current `jbcentral quota` output (>= 0.4.1): the reset date moved into a
+// "Quota period: <start> - <end>" range.
+const SAMPLE_OUTPUT_PERIOD = `you@jetbrains.com · JetBrains AI Ultimate
+
+Usage: $3.96 / $200.00 (2.0%)
+Remaining: $196.04
+
+Quota:  $3.96 / $200.00 used ($196.04 remaining)
+
+[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]
+
+Quota period: Jun 1, 2026 - Jun 30, 2026
+`;
+
 function lines(...types: string[]): WidgetItem[][] {
     return [types.map((type, index) => ({ id: String(index), type }))];
 }
 
 describe('parseJbCentralOutput', () => {
-    it('parses every field from the CLI output', () => {
+    it('parses every field from the legacy "Resets:" CLI output', () => {
         expect(parseJbCentralOutput(SAMPLE_OUTPUT)).toEqual({
             account: 'you@jetbrains.com',
             plan: 'JetBrains AI Ultimate',
@@ -47,6 +63,30 @@ describe('parseJbCentralOutput', () => {
             remaining: '$196.04',
             resetDate: 'Jun 30, 2026'
         });
+    });
+
+    it('parses the "Quota period:" range, mapping the end to resetDate and the start to periodStart', () => {
+        expect(parseJbCentralOutput(SAMPLE_OUTPUT_PERIOD)).toEqual({
+            account: 'you@jetbrains.com',
+            plan: 'JetBrains AI Ultimate',
+            usage: '$3.96',
+            quota: '$200.00',
+            usagePercent: '2.0%',
+            remaining: '$196.04',
+            periodStart: 'Jun 1, 2026',
+            resetDate: 'Jun 30, 2026'
+        });
+    });
+
+    it('does not match the "Quota:" usage line as a period range', () => {
+        // "Quota:  $3.96 / ..." must not be mistaken for "Quota period: ...".
+        const parsed = parseJbCentralOutput(SAMPLE_OUTPUT_PERIOD);
+        expect(parsed.periodStart).toBe('Jun 1, 2026');
+        expect(parsed.resetDate).toBe('Jun 30, 2026');
+    });
+
+    it('leaves periodStart undefined on the legacy "Resets:" format', () => {
+        expect(parseJbCentralOutput(SAMPLE_OUTPUT).periodStart).toBeUndefined();
     });
 
     it('strips ANSI color codes before parsing', () => {

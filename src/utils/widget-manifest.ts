@@ -106,6 +106,7 @@ export const WIDGET_MANIFEST: WidgetManifestEntry[] = [
     { type: 'jbcentral-quota', create: () => new widgets.JbCentralQuotaWidget() },
     { type: 'jbcentral-usage-percent', create: () => new widgets.JbCentralUsagePercentWidget() },
     { type: 'jbcentral-remaining', create: () => new widgets.JbCentralRemainingWidget() },
+    { type: 'jbcentral-period-start', create: () => new widgets.JbCentralPeriodStartWidget() },
     { type: 'jbcentral-reset-date', create: () => new widgets.JbCentralResetDateWidget() },
     { type: 'jbcentral-reset-days', create: () => new widgets.JbCentralResetDaysWidget() }
 ];

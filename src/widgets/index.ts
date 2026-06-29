@@ -87,5 +87,6 @@ export { JbCentralUsageWidget } from './JbCentralUsage';
 export { JbCentralQuotaWidget } from './JbCentralQuota';
 export { JbCentralUsagePercentWidget } from './JbCentralUsagePercent';
 export { JbCentralRemainingWidget } from './JbCentralRemaining';
+export { JbCentralPeriodStartWidget } from './JbCentralPeriodStart';
 export { JbCentralResetDateWidget } from './JbCentralResetDate';
 export { JbCentralResetDaysWidget } from './JbCentralResetDays';

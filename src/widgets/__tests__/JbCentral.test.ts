@@ -14,6 +14,7 @@ import type {
     WidgetItem
 } from '../../types/Widget';
 import { JbCentralAccountWidget } from '../JbCentralAccount';
+import { JbCentralPeriodStartWidget } from '../JbCentralPeriodStart';
 import { JbCentralPlanWidget } from '../JbCentralPlan';
 import { JbCentralQuotaWidget } from '../JbCentralQuota';
 import { JbCentralRemainingWidget } from '../JbCentralRemaining';
@@ -29,6 +30,7 @@ const SAMPLE: JbCentralData = {
     quota: '$200.00',
     usagePercent: '2.0%',
     remaining: '$196.04',
+    periodStart: 'Jun 1, 2026',
     resetDate: 'Jun 30, 2026',
     resetDays: 29
 };
@@ -47,6 +49,7 @@ const CASES: WidgetCase[] = [
     { name: 'quota', widget: new JbCentralQuotaWidget(), labeled: 'Quota: $200.00', raw: '$200.00' },
     { name: 'usage-percent', widget: new JbCentralUsagePercentWidget(), labeled: 'Usage: 2.0%', raw: '2.0%' },
     { name: 'remaining', widget: new JbCentralRemainingWidget(), labeled: 'Remaining: $196.04', raw: '$196.04' },
+    { name: 'period-start', widget: new JbCentralPeriodStartWidget(), labeled: 'Period start: Jun 1, 2026', raw: 'Jun 1, 2026' },
     { name: 'reset-date', widget: new JbCentralResetDateWidget(), labeled: 'Resets: Jun 30, 2026', raw: 'Jun 30, 2026' },
     { name: 'reset-days', widget: new JbCentralResetDaysWidget(), labeled: 'Resets in: 29d', raw: '29d' }
 ];

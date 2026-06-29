@@ -33,6 +33,7 @@ export interface JbCentralData {
     quota?: string;
     usagePercent?: string;
     remaining?: string;
+    periodStart?: string;
     resetDate?: string;
     resetDays?: number;
     error?: JbCentralError;
