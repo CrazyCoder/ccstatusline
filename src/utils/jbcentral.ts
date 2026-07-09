@@ -123,16 +123,17 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
         }
     }
 
-    // "Usage: $3.96 / $200.00 (2.0%)"
-    const usageMatch = /Usage:\s*(\$[\d.,]+)\s*\/\s*(\$[\d.,]+)\s*\(([\d.]+%)\)/.exec(text);
+    // Dollar plans: "Usage: $3.96 / $200.00 (2.0%)"
+    // Credit plans (rebranded `central` CLI): "Usage: 11.98 / 5000.00 credits (0.2%)"
+    const usageMatch = /Usage:\s*(\$?[\d.,]+)\s*\/\s*(\$?[\d.,]+)(?:\s+credits)?\s*\(([\d.]+%)\)/.exec(text);
     if (usageMatch) {
         result.usage = usageMatch[1];
         result.quota = usageMatch[2];
         result.usagePercent = usageMatch[3];
     }
 
-    // "Remaining: $196.04"
-    const remainingMatch = /Remaining:\s*(\$[\d.,]+)/.exec(text);
+    // "Remaining: $196.04" or "Remaining: 4988.02 credits"
+    const remainingMatch = /Remaining:\s*(\$?[\d.,]+)/.exec(text);
     if (remainingMatch) {
         result.remaining = remainingMatch[1];
     }

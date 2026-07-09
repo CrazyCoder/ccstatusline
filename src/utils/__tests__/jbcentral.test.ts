@@ -49,6 +49,20 @@ Quota:  $3.96 / $200.00 used ($196.04 remaining)
 Quota period: Jun 1, 2026 - Jun 30, 2026
 `;
 
+// Rebranded `central quota` output: amounts are unit-less credits ("11.98 /
+// 5000.00 credits") instead of dollar figures.
+const SAMPLE_OUTPUT_CREDITS = `you@jetbrains.com · JetBrains AI Ultimate
+
+Usage: 11.98 / 5000.00 credits (0.2%)
+Remaining: 4988.02 credits
+
+Quota:  11.98 / 5000.00 credits used (4988.02 remaining)
+
+[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]
+
+Quota period: Jul 1, 2026 - Jul 31, 2026
+`;
+
 function lines(...types: string[]): WidgetItem[][] {
     return [types.map((type, index) => ({ id: String(index), type }))];
 }
@@ -76,6 +90,19 @@ describe('parseJbCentralOutput', () => {
             remaining: '$196.04',
             periodStart: 'Jun 1, 2026',
             resetDate: 'Jun 30, 2026'
+        });
+    });
+
+    it('parses the credits-based output of the rebranded `central` CLI', () => {
+        expect(parseJbCentralOutput(SAMPLE_OUTPUT_CREDITS)).toEqual({
+            account: 'you@jetbrains.com',
+            plan: 'JetBrains AI Ultimate',
+            usage: '11.98',
+            quota: '5000.00',
+            usagePercent: '0.2%',
+            remaining: '4988.02',
+            periodStart: 'Jul 1, 2026',
+            resetDate: 'Jul 31, 2026'
         });
     });
 
