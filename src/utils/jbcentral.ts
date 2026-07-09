@@ -158,6 +158,102 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
     return result;
 }
 
+// `central quota --json` payload (v1.0.1+). Amounts are strings in practice
+// ("11.98"), but numbers are tolerated. `refillLast`/`refillNext` are epoch ms.
+interface QuotaJson {
+    email?: unknown;
+    licenseName?: unknown;
+    usedDollars?: unknown;
+    maxDollars?: unknown;
+    tariffQuota?: { available?: unknown };
+    refillLast?: unknown;
+    refillNext?: unknown;
+}
+
+function asAmount(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.trim() !== '') {
+        return value;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+    }
+    return undefined;
+}
+
+// Format an epoch-ms refill timestamp the way the text output prints dates
+// ("Jul 31, 2026"), so cached data is interchangeable between formats and the
+// Reset Date / Days Until Reset widgets keep working unchanged. UTC on
+// purpose: `refillNext` is 23:59:59.999Z on the period's last day, which
+// local-TZ formatting east of UTC would roll into the next day.
+function formatEpochDate(ms: unknown): string | undefined {
+    if (typeof ms !== 'number' || !Number.isFinite(ms)) {
+        return undefined;
+    }
+    return new Date(ms).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC'
+    });
+}
+
+export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
+    let json: unknown;
+    try {
+        json = JSON.parse(rawOutput);
+    } catch {
+        return {};
+    }
+    if (json === null || typeof json !== 'object' || Array.isArray(json)) {
+        return {};
+    }
+    const quota = json as QuotaJson;
+    const result: JbCentralCachedFields = {};
+
+    // Only assign fields that are actually present, so an unusable payload
+    // reads as empty (parse-error) and cache entries stay minimal, like the
+    // text parser's output.
+    if (typeof quota.email === 'string' && quota.email) {
+        result.account = quota.email;
+    }
+    if (typeof quota.licenseName === 'string' && quota.licenseName) {
+        result.plan = quota.licenseName;
+    }
+
+    const usage = asAmount(quota.usedDollars);
+    const max = asAmount(quota.maxDollars);
+    if (usage !== undefined) {
+        result.usage = usage;
+    }
+    if (max !== undefined) {
+        result.quota = max;
+    }
+
+    const usedNum = Number(usage);
+    const maxNum = Number(max);
+    const amountsKnown = Number.isFinite(usedNum) && Number.isFinite(maxNum);
+    if (amountsKnown && maxNum > 0) {
+        // One decimal, matching the text output's pre-rounded "(0.2%)".
+        result.usagePercent = `${(usedNum / maxNum * 100).toFixed(1)}%`;
+    }
+
+    const remaining = asAmount(quota.tariffQuota?.available)
+        ?? (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
+    if (remaining !== undefined) {
+        result.remaining = remaining;
+    }
+
+    const periodStart = formatEpochDate(quota.refillLast);
+    if (periodStart !== undefined) {
+        result.periodStart = periodStart;
+    }
+    const resetDate = formatEpochDate(quota.refillNext);
+    if (resetDate !== undefined) {
+        result.resetDate = resetDate;
+    }
+    return result;
+}
+
 export interface ReadCacheResult {
     data: JbCentralCachedFields;
     ageSeconds: number;
@@ -203,34 +299,48 @@ function touchLock(): void {
     }
 }
 
-export type QuotaResult = { ok: true; output: string } | { ok: false; error: JbCentralError };
+export type QuotaResult
+    = { ok: true; output: string; format: 'json' | 'text' }
+        | { ok: false; error: JbCentralError };
 
-// The quota CLI was renamed `jbcentral` → `central`; installs migrated from the
-// old name keep a `jbcentral` compat symlink but may predate the rename. Try
-// the new name first and fall back to the legacy one.
-const QUOTA_CLI_CANDIDATES = ['central', 'jbcentral'] as const;
+export type QuotaExec = (bin: string, args: string[]) => string;
 
-export function runQuotaCli(exec: (bin: string) => string): QuotaResult {
-    let error: JbCentralError = 'not-found';
-    for (const bin of QUOTA_CLI_CANDIDATES) {
-        try {
-            return { ok: true, output: exec(bin) };
-        } catch (err) {
-            // Timed out (5s — e.g. a firewalled telemetry call) or non-zero
-            // exit. Classify it so the widget can show why.
-            error = classifyQuotaError(err);
-            // Only a missing binary (ENOENT) justifies trying the older name;
-            // any other failure means the CLI exists and ran.
-            if (error !== 'not-found') {
-                return { ok: false, error };
-            }
+function runTextQuota(exec: QuotaExec, bin: string): QuotaResult {
+    try {
+        return { ok: true, output: exec(bin, ['quota']), format: 'text' };
+    } catch (err) {
+        // Timed out (5s — e.g. a firewalled telemetry call), missing binary
+        // (ENOENT), or non-zero exit. Classify it so the widget can show why.
+        return { ok: false, error: classifyQuotaError(err) };
+    }
+}
+
+// The quota CLI was renamed `jbcentral` → `central` (v1.0.0; migrated installs
+// keep a `jbcentral` compat symlink) and gained `quota --json` in v1.0.1.
+// Prefer the format-stable JSON output; degrade per failure mode. The 30s lock
+// caps the worst case (one extra spawn per fetch, v1.0.0 only).
+export function runQuotaCli(exec: QuotaExec): QuotaResult {
+    try {
+        return { ok: true, output: exec('central', ['quota', '--json']), format: 'json' };
+    } catch (err) {
+        const error = classifyQuotaError(err);
+        if (error === 'cli-error') {
+            // `central` exists but rejects --json (v1.0.0, "unknown flag",
+            // exit 1) — re-run it for the text output.
+            return runTextQuota(exec, 'central');
+        }
+        if (error !== 'not-found') {
+            // Timeout etc.: the binary exists and ran — retrying won't help.
+            return { ok: false, error };
         }
     }
-    return { ok: false, error };
+    // No `central` binary: a pre-rename install, where `jbcentral` is a real
+    // pre-1.0 binary that never supports --json.
+    return runTextQuota(exec, 'jbcentral');
 }
 
 function runJbCentralQuota(): QuotaResult {
-    return runQuotaCli(bin => execFileSync(bin, ['quota'], {
+    return runQuotaCli((bin, args) => execFileSync(bin, args, {
         encoding: 'utf8',
         timeout: CLI_TIMEOUT_MS,
         stdio: ['ignore', 'pipe', 'ignore'],
@@ -291,7 +401,8 @@ export function resolveJbCentralData(io: JbCentralFetchIO): JbCentralData | null
         return staleDataOrError(cached, result.error, io.writeCache);
     }
 
-    const parsed = parseJbCentralOutput(result.output);
+    const parse = result.format === 'json' ? parseJbCentralJson : parseJbCentralOutput;
+    const parsed = parse(result.output);
     if (isEmptyData(parsed)) {
         return staleDataOrError(cached, 'parse-error', io.writeCache);
     }

@@ -15,6 +15,7 @@ import {
     computeResetDays,
     getJbCentralErrorMessage,
     hasJbCentralWidgets,
+    parseJbCentralJson,
     parseJbCentralOutput,
     prefetchJbCentralDataIfNeeded,
     resolveJbCentralData,
@@ -62,6 +63,27 @@ Quota:  11.98 / 5000.00 credits used (4988.02 remaining)
 
 Quota period: Jul 1, 2026 - Jul 31, 2026
 `;
+
+// `central quota --json` output (central v1.0.1+).
+const SAMPLE_OUTPUT_JSON = `{
+  "email": "you@jetbrains.com",
+  "licenseName": "JetBrains AI Ultimate",
+  "managed": false,
+  "usedDollars": "11.98",
+  "maxDollars": "5000.00",
+  "tariffQuota": {
+    "current": "11.98",
+    "maximum": "5000.00",
+    "available": "4988.02"
+  },
+  "topUpQuota": {
+    "current": "0.00",
+    "maximum": "0.00",
+    "available": "0.00"
+  },
+  "refillLast": 1782864000000,
+  "refillNext": 1785542399999
+}`;
 
 function lines(...types: string[]): WidgetItem[][] {
     return [types.map((type, index) => ({ id: String(index), type }))];
@@ -177,33 +199,91 @@ describe('getJbCentralErrorMessage', () => {
     });
 });
 
-describe('runQuotaCli', () => {
-    const enoent = () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' });
-
-    it('uses `central` when it succeeds, without trying the legacy name', () => {
-        const calls: string[] = [];
-        const result = runQuotaCli((bin) => {
-            calls.push(bin);
-            return 'output';
+describe('parseJbCentralJson', () => {
+    it('maps every field from `central quota --json` output', () => {
+        expect(parseJbCentralJson(SAMPLE_OUTPUT_JSON)).toEqual({
+            account: 'you@jetbrains.com',
+            plan: 'JetBrains AI Ultimate',
+            usage: '11.98',
+            quota: '5000.00',
+            usagePercent: '0.2%',
+            remaining: '4988.02',
+            periodStart: 'Jul 1, 2026',
+            resetDate: 'Jul 31, 2026'
         });
-        expect(result).toEqual({ ok: true, output: 'output' });
-        expect(calls).toEqual(['central']);
     });
 
-    it('falls back to `jbcentral` when `central` is not installed', () => {
-        const calls: string[] = [];
-        const result = runQuotaCli((bin) => {
-            calls.push(bin);
+    it('formats refill timestamps in UTC so the period end does not roll into the next day', () => {
+        // 2026-07-31T23:59:59.999Z — local-TZ formatting east of UTC would say Aug 1.
+        const parsed = parseJbCentralJson('{"refillNext": 1785542399999}');
+        expect(parsed.resetDate).toBe('Jul 31, 2026');
+    });
+
+    it('computes remaining from used/max when tariffQuota is absent', () => {
+        const parsed = parseJbCentralJson('{"usedDollars": "11.98", "maxDollars": "5000.00"}');
+        expect(parsed.remaining).toBe('4988.02');
+    });
+
+    it('omits the percentage when the quota is zero', () => {
+        const parsed = parseJbCentralJson('{"usedDollars": "0.00", "maxDollars": "0.00"}');
+        expect(parsed.usagePercent).toBeUndefined();
+    });
+
+    it('returns an empty object for invalid JSON or non-object payloads', () => {
+        expect(parseJbCentralJson('unknown flag: --json')).toEqual({});
+        expect(parseJbCentralJson('null')).toEqual({});
+        expect(parseJbCentralJson('[1,2]')).toEqual({});
+    });
+
+    it('tolerates numeric amounts', () => {
+        const parsed = parseJbCentralJson('{"usedDollars": 11.98, "maxDollars": 5000}');
+        expect(parsed.usage).toBe('11.98');
+        expect(parsed.quota).toBe('5000');
+        expect(parsed.usagePercent).toBe('0.2%');
+    });
+});
+
+describe('runQuotaCli', () => {
+    const enoent = () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' });
+    const unknownFlag = () => Object.assign(new Error('exited 1'), { status: 1 });
+
+    it('prefers `central quota --json` and reports the json format', () => {
+        const calls: [string, string[]][] = [];
+        const result = runQuotaCli((bin, args) => {
+            calls.push([bin, args]);
+            return '{"email":"a@b"}';
+        });
+        expect(result).toEqual({ ok: true, output: '{"email":"a@b"}', format: 'json' });
+        expect(calls).toEqual([['central', ['quota', '--json']]]);
+    });
+
+    it('re-runs `central quota` as text when --json is rejected (central 1.0.0)', () => {
+        const calls: [string, string[]][] = [];
+        const result = runQuotaCli((bin, args) => {
+            calls.push([bin, args]);
+            if (args.includes('--json')) {
+                throw unknownFlag();
+            }
+            return 'text output';
+        });
+        expect(result).toEqual({ ok: true, output: 'text output', format: 'text' });
+        expect(calls).toEqual([['central', ['quota', '--json']], ['central', ['quota']]]);
+    });
+
+    it('falls back to `jbcentral quota` (text, no --json) when `central` is not installed', () => {
+        const calls: [string, string[]][] = [];
+        const result = runQuotaCli((bin, args) => {
+            calls.push([bin, args]);
             if (bin === 'central') {
                 throw enoent();
             }
             return 'legacy output';
         });
-        expect(result).toEqual({ ok: true, output: 'legacy output' });
-        expect(calls).toEqual(['central', 'jbcentral']);
+        expect(result).toEqual({ ok: true, output: 'legacy output', format: 'text' });
+        expect(calls).toEqual([['central', ['quota', '--json']], ['jbcentral', ['quota']]]);
     });
 
-    it('does not fall back when `central` exists but fails', () => {
+    it('does not retry when `central` times out', () => {
         const calls: string[] = [];
         const result = runQuotaCli((bin) => {
             calls.push(bin);
@@ -223,9 +303,19 @@ describe('runQuotaCli', () => {
             if (bin === 'central') {
                 throw enoent();
             }
-            throw Object.assign(new Error('exited 1'), { status: 1 });
+            throw unknownFlag();
         });
         expect(result).toEqual({ ok: false, error: 'cli-error' });
+    });
+
+    it('surfaces the text re-run failure when both central invocations fail', () => {
+        const result = runQuotaCli((bin, args) => {
+            if (args.includes('--json')) {
+                throw unknownFlag();
+            }
+            throw Object.assign(new Error('timed out'), { killed: true, signal: 'SIGTERM' });
+        });
+        expect(result).toEqual({ ok: false, error: 'timeout' });
     });
 });
 
@@ -267,7 +357,7 @@ describe('resolveJbCentralData', () => {
         const writes: JbCentralCachedFields[] = [];
         let lockTouched = false;
         let quotaCalls = 0;
-        const run = overrides.runQuota ?? ((): QuotaResult => ({ ok: true, output: SAMPLE_OUTPUT }));
+        const run = overrides.runQuota ?? ((): QuotaResult => ({ ok: true, output: SAMPLE_OUTPUT, format: 'text' }));
         const io: JbCentralFetchIO = {
             now: 1000,
             readCache: overrides.readCache ?? (() => null),
@@ -336,10 +426,23 @@ describe('resolveJbCentralData', () => {
     });
 
     it('persists a parse-error when the CLI succeeds but output is unparseable', () => {
-        const h = makeIO({ runQuota: () => ({ ok: true, output: 'totally unrelated text' }) });
+        const h = makeIO({ runQuota: () => ({ ok: true, output: 'totally unrelated text', format: 'text' }) });
         const result = resolveJbCentralData(h.io);
         expect(result).toEqual({ error: 'parse-error' });
         expect(h.writes).toEqual([{ error: 'parse-error' }]);
+    });
+
+    it('parses json-format results with the JSON parser', () => {
+        const h = makeIO({ runQuota: () => ({ ok: true, output: SAMPLE_OUTPUT_JSON, format: 'json' }) });
+        const result = resolveJbCentralData(h.io);
+        expect(result?.account).toBe('you@jetbrains.com');
+        expect(result?.remaining).toBe('4988.02');
+        expect(h.writes[0]?.resetDate).toBe('Jul 31, 2026');
+    });
+
+    it('persists a parse-error when json-format output is not valid JSON', () => {
+        const h = makeIO({ runQuota: () => ({ ok: true, output: 'not json', format: 'json' }) });
+        expect(resolveJbCentralData(h.io)).toEqual({ error: 'parse-error' });
     });
 
     it('returns null during the lock window when there is no cache at all', () => {
