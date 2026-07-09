@@ -17,7 +17,8 @@ import {
     hasJbCentralWidgets,
     parseJbCentralOutput,
     prefetchJbCentralDataIfNeeded,
-    resolveJbCentralData
+    resolveJbCentralData,
+    runQuotaCli
 } from '../jbcentral';
 
 // Legacy `jbcentral quota` output (< 0.4.1): the reset date is a single
@@ -142,10 +143,62 @@ describe('classifyQuotaError', () => {
 
 describe('getJbCentralErrorMessage', () => {
     it('maps each error code to a bracketed status string', () => {
-        expect(getJbCentralErrorMessage('not-found')).toBe('[jbcentral not found]');
+        expect(getJbCentralErrorMessage('not-found')).toBe('[central not found]');
         expect(getJbCentralErrorMessage('timeout')).toBe('[Timeout]');
         expect(getJbCentralErrorMessage('cli-error')).toBe('[CLI error]');
         expect(getJbCentralErrorMessage('parse-error')).toBe('[Parse Error]');
+    });
+});
+
+describe('runQuotaCli', () => {
+    const enoent = () => Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' });
+
+    it('uses `central` when it succeeds, without trying the legacy name', () => {
+        const calls: string[] = [];
+        const result = runQuotaCli((bin) => {
+            calls.push(bin);
+            return 'output';
+        });
+        expect(result).toEqual({ ok: true, output: 'output' });
+        expect(calls).toEqual(['central']);
+    });
+
+    it('falls back to `jbcentral` when `central` is not installed', () => {
+        const calls: string[] = [];
+        const result = runQuotaCli((bin) => {
+            calls.push(bin);
+            if (bin === 'central') {
+                throw enoent();
+            }
+            return 'legacy output';
+        });
+        expect(result).toEqual({ ok: true, output: 'legacy output' });
+        expect(calls).toEqual(['central', 'jbcentral']);
+    });
+
+    it('does not fall back when `central` exists but fails', () => {
+        const calls: string[] = [];
+        const result = runQuotaCli((bin) => {
+            calls.push(bin);
+            throw Object.assign(new Error('timed out'), { killed: true, signal: 'SIGTERM' });
+        });
+        expect(result).toEqual({ ok: false, error: 'timeout' });
+        expect(calls).toEqual(['central']);
+    });
+
+    it('reports not-found when neither binary is installed', () => {
+        const result = runQuotaCli(() => { throw enoent(); });
+        expect(result).toEqual({ ok: false, error: 'not-found' });
+    });
+
+    it('surfaces a legacy-binary failure after the fallback', () => {
+        const result = runQuotaCli((bin) => {
+            if (bin === 'central') {
+                throw enoent();
+            }
+            throw Object.assign(new Error('exited 1'), { status: 1 });
+        });
+        expect(result).toEqual({ ok: false, error: 'cli-error' });
     });
 });
 

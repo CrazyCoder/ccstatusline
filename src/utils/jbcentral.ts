@@ -20,7 +20,7 @@ const LOCK_MAX_AGE = 30;   // only spawn the CLI at most once per 30 seconds
 const CLI_TIMEOUT_MS = 5000;
 const MS_PER_DAY = 86_400_000;
 
-// All widget types that depend on `jbcentral quota` output. If none of these
+// All widget types that depend on `central quota` output. If none of these
 // appear in the configured lines, the CLI is never invoked.
 const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
     'jbcentral-account',
@@ -41,7 +41,7 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
 // written when a fetch fails, so the widget keeps showing why between renders.
 export type JbCentralCachedFields = Omit<JbCentralData, 'resetDays'>;
 
-// The string fields a successful `jbcentral quota` parse produces. Used to tell
+// The string fields a successful `central quota` parse produces. Used to tell
 // real cached data apart from an `{ error }` marker.
 const REAL_DATA_FIELDS: (keyof JbCentralCachedFields)[] = [
     'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'periodStart', 'resetDate'
@@ -53,7 +53,7 @@ function hasGoodData(data: JbCentralCachedFields): boolean {
 
 // Map a thrown `execFileSync` failure to a diagnostic error code so the widget
 // can show *why* it has no data instead of silently rendering nothing. A 5s
-// timeout (slow `jbcentral quota`, e.g. a firewalled telemetry call) surfaces
+// timeout (slow `central quota`, e.g. a firewalled telemetry call) surfaces
 // as `killed`/SIGTERM; a missing binary as ENOENT; anything else (non-zero
 // exit, auth failure) as a generic CLI error.
 export function classifyQuotaError(err: unknown): JbCentralError {
@@ -69,7 +69,7 @@ export function classifyQuotaError(err: unknown): JbCentralError {
 
 export function getJbCentralErrorMessage(error: JbCentralError): string {
     switch (error) {
-        case 'not-found': return '[jbcentral not found]';
+        case 'not-found': return '[central not found]';
         case 'timeout': return '[Timeout]';
         case 'cli-error': return '[CLI error]';
         case 'parse-error': return '[Parse Error]';
@@ -204,20 +204,37 @@ function touchLock(): void {
 
 export type QuotaResult = { ok: true; output: string } | { ok: false; error: JbCentralError };
 
-function runJbCentralQuota(): QuotaResult {
-    try {
-        const output = execFileSync('jbcentral', ['quota'], {
-            encoding: 'utf8',
-            timeout: CLI_TIMEOUT_MS,
-            stdio: ['ignore', 'pipe', 'ignore'],
-            windowsHide: true
-        });
-        return { ok: true, output };
-    } catch (err) {
-        // Not installed (ENOENT), timed out (5s — e.g. a firewalled telemetry
-        // call), or non-zero exit. Classify it so the widget can show why.
-        return { ok: false, error: classifyQuotaError(err) };
+// The quota CLI was renamed `jbcentral` → `central`; installs migrated from the
+// old name keep a `jbcentral` compat symlink but may predate the rename. Try
+// the new name first and fall back to the legacy one.
+const QUOTA_CLI_CANDIDATES = ['central', 'jbcentral'] as const;
+
+export function runQuotaCli(exec: (bin: string) => string): QuotaResult {
+    let error: JbCentralError = 'not-found';
+    for (const bin of QUOTA_CLI_CANDIDATES) {
+        try {
+            return { ok: true, output: exec(bin) };
+        } catch (err) {
+            // Timed out (5s — e.g. a firewalled telemetry call) or non-zero
+            // exit. Classify it so the widget can show why.
+            error = classifyQuotaError(err);
+            // Only a missing binary (ENOENT) justifies trying the older name;
+            // any other failure means the CLI exists and ran.
+            if (error !== 'not-found') {
+                return { ok: false, error };
+            }
+        }
     }
+    return { ok: false, error };
+}
+
+function runJbCentralQuota(): QuotaResult {
+    return runQuotaCli(bin => execFileSync(bin, ['quota'], {
+        encoding: 'utf8',
+        timeout: CLI_TIMEOUT_MS,
+        stdio: ['ignore', 'pipe', 'ignore'],
+        windowsHide: true
+    }));
 }
 
 // I/O seam for the fetch orchestration — injected so the decision logic can be

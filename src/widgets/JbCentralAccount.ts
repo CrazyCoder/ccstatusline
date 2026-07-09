@@ -10,7 +10,7 @@ import { renderJbCentralField } from './shared/jbcentral-field';
 
 export class JbCentralAccountWidget implements Widget {
     getDefaultColor(): string { return 'blue'; }
-    getDescription(): string { return 'Shows the JetBrains Central account (from `jbcentral quota`)'; }
+    getDescription(): string { return 'Shows the JetBrains Central account (from `central quota`)'; }
     getDisplayName(): string { return 'Account'; }
     getCategory(): string { return 'JetBrains Central'; }
 

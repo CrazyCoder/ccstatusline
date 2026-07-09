@@ -8,7 +8,7 @@ import { getJbCentralErrorMessage } from '../../utils/jbcentral';
 import { formatRawOrLabeledValue } from './raw-or-labeled';
 
 // Shared render path for every JetBrains Central widget: handle preview mode,
-// surface a bare diagnostic when the `jbcentral quota` fetch failed (timeout,
+// surface a bare diagnostic when the `central quota` fetch failed (timeout,
 // missing binary, …), pull the widget's field out of the prefetched data,
 // render nothing when the field is absent, and honor the raw/labeled toggle.
 export function renderJbCentralField(

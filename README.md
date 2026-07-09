@@ -52,7 +52,7 @@ This is a fork of [`sirmalloc/ccstatusline`](https://github.com/sirmalloc/ccstat
 
 ### JetBrains Central widgets
 
-Nine widgets that surface your JetBrains AI quota, parsed from the `jbcentral quota` CLI:
+Nine widgets that surface your JetBrains AI quota, parsed from the `central quota` CLI (falling back to the legacy `jbcentral` binary name when `central` is not installed):
 
 | Widget | Example |
 |--------|---------|
@@ -66,9 +66,9 @@ Nine widgets that surface your JetBrains AI quota, parsed from the `jbcentral qu
 | Reset Date | `Jun 30, 2026` |
 | Days Until Reset | `29d` |
 
-Both the legacy `Resets: <date>` output and the current `Quota period: <start> - <end>` range (jbcentral 0.4.1+) are parsed. **Reset Date** and **Days Until Reset** track the period *end* in either format; **Period Start** shows the period *start* and is blank on the older CLI.
+Both the legacy `Resets: <date>` output and the current `Quota period: <start> - <end>` range (CLI 0.4.1+) are parsed. **Reset Date** and **Days Until Reset** track the period *end* in either format; **Period Start** shows the period *start* and is blank on the older CLI.
 
-The `jbcentral` CLI is invoked **only** when at least one of these widgets is in your status line; its output is parsed once and cached for 180 seconds, so it never runs on every status-line render. The widgets appear under a **JetBrains Central** group in the widget picker.
+The `central` CLI is invoked **only** when at least one of these widgets is in your status line; its output is parsed once and cached for 180 seconds, so it never runs on every status-line render. The widgets appear under a **JetBrains Central** group in the widget picker.
 
 > The installed command stays **`ccstatusline`** — only the npm package name differs (`ccstatusline-jb`) — so existing hooks and `settings.json` integrations keep working. If you also have upstream `ccstatusline` installed globally, only one of them can own the global `ccstatusline` command.
 

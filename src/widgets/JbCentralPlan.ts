@@ -10,7 +10,7 @@ import { renderJbCentralField } from './shared/jbcentral-field';
 
 export class JbCentralPlanWidget implements Widget {
     getDefaultColor(): string { return 'magenta'; }
-    getDescription(): string { return 'Shows the JetBrains Central plan (from `jbcentral quota`)'; }
+    getDescription(): string { return 'Shows the JetBrains Central plan (from `central quota`)'; }
     getDisplayName(): string { return 'Plan'; }
     getCategory(): string { return 'JetBrains Central'; }
 

@@ -84,7 +84,7 @@ describe('JetBrains Central widgets', () => {
 
     it.each(CASES)('shows the diagnostic for $name even with rawValue enabled', ({ widget }) => {
         const context: RenderContext = { jbCentralData: { error: 'not-found' } };
-        expect(widget.render(item(true), context, DEFAULT_SETTINGS)).toBe('[jbcentral not found]');
+        expect(widget.render(item(true), context, DEFAULT_SETTINGS)).toBe('[central not found]');
     });
 
     it('all widgets report the JetBrains Central category', () => {
