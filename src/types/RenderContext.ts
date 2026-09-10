@@ -41,6 +41,16 @@ export interface JbCentralData {
     error?: JbCentralError;
 }
 
+export interface ClaudeStatusRenderData {
+    indicator?: string;
+    incidents?: {
+        impact: 'minor' | 'major' | 'critical';
+        startMs: number;
+        endMs: number | null;
+    }[];
+    error?: boolean;
+}
+
 export interface CompactionData {
     count: number;
     byTrigger: { auto: number; manual: number; unknown: number };
@@ -54,7 +64,10 @@ export interface RenderContext {
     windowedSpeedMetrics?: Record<string, SpeedMetrics> | null;
     usageData?: RenderUsageData | null;
     jbCentralData?: JbCentralData | null;
+    claudeStatusData?: ClaudeStatusRenderData | null;
     sessionDuration?: string | null;
+    transcriptSessionName?: string | null;
+    transcriptThinkingEffort?: { value: string; known: boolean } | null;
     blockMetrics?: BlockMetrics | null;
     skillsMetrics?: SkillsMetrics | null;
     compactionData?: CompactionData | null;
