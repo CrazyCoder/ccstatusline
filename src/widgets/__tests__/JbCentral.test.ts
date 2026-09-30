@@ -133,10 +133,20 @@ describe('JetBrains Central usage percent bar modes', () => {
         expect(widget.render(barItem({ invert: 'true' }, false), context, DEFAULT_SETTINGS)).toBe('Usage: 92.0%');
     });
 
-    it('draws the period cursor from the quota period', () => {
-        const rendered = widget.render(barItem({ display: 'slider-only', cursor: 'true' }), context, DEFAULT_SETTINGS);
+    it('draws the period cursor at the elapsed part of the quota period', () => {
+        // A period centered on the real clock, so the cursor must land mid-bar.
+        const day = (offset: number): string => new Date(Date.now() + offset * 86_400_000)
+            .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const midPeriod: RenderContext = { jbCentralData: { usagePercent: '8.0%', periodStart: day(-15), resetDate: day(14) } };
+        const rendered = widget.render(barItem({ display: 'slider-only', cursor: 'true' }), midPeriod, DEFAULT_SETTINGS) ?? '';
         expect(rendered).toHaveLength(10);
-        expect(rendered).toContain('│');
+        expect(rendered.indexOf('│')).toBeGreaterThanOrEqual(3);
+        expect(rendered.indexOf('│')).toBeLessThanOrEqual(6);
+    });
+
+    it('applies the percent number format to the plain display', () => {
+        const settings = { ...DEFAULT_SETTINGS, numberFormat: { percent: { style: 'whole' as const } } };
+        expect(widget.render(barItem({}), context, settings)).toBe('8%');
     });
 
     it('keeps diagnostics and absent data in bar modes', () => {

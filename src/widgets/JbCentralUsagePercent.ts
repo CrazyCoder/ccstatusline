@@ -16,7 +16,6 @@ import {
     resolveNumberFormat
 } from '../utils/number-format';
 
-import { renderJbCentralField } from './shared/jbcentral-field';
 import { makeTimerProgressBar } from './shared/progress-bar';
 import { formatRawOrLabeledValue } from './shared/raw-or-labeled';
 import {
@@ -63,9 +62,9 @@ function renderPercentDisplay(
     return formatRawOrLabeledValue(item, LABEL, text);
 }
 
-// The plain used-percent display keeps the CLI's own string ("0.2%"). The bar
-// modes and the remaining-percent display need a number, so they parse it and
-// format it with the widget's percent number format, like the Usage widgets.
+// Every mode parses the CLI's percentage string ("0.2%") and formats it with
+// the percent number format. The default format keeps one decimal, which is
+// what the CLI prints.
 export class JbCentralUsagePercentWidget implements Widget {
     getDefaultColor(): string { return 'yellow'; }
     getDescription(): string { return 'Shows JetBrains Central usage as a percentage of quota (e.g. 2.0%), optionally as a bar'; }
@@ -94,10 +93,6 @@ export class JbCentralUsagePercentWidget implements Widget {
 
     render(item: WidgetItem, context: RenderContext, settings: Settings): string | null {
         const inverted = isUsageInverted(item);
-        if (getUsageDisplayMode(item) === 'time' && !inverted) {
-            return renderJbCentralField(item, context, LABEL, `${PREVIEW_PERCENT.toFixed(1)}%`, data => data.usagePercent);
-        }
-
         const format = resolveNumberFormat('percent', item, settings);
         const showCursor = isUsageCursorEnabled(item);
 
