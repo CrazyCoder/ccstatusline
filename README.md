@@ -68,7 +68,7 @@ Nine widgets that surface your JetBrains AI quota, parsed from the `central quot
 
 **Usage %** has the same display modes as the Usage widgets. Press `p` to cycle through a long bar, a medium bar, a short bar with the percentage (`▓░░░░░░░░░ 8%`) and the short bar alone. Press `u` to show the remaining quota instead of the used quota. In a bar mode, press `t` to add a cursor that marks how far the quota period has run.
 
-Both the legacy `Resets: <date>` output and the current `Quota period: <start> - <end>` range (CLI 0.4.1+) are parsed. **Reset Date** and **Days Until Reset** track the period *end* in either format; **Period Start** shows the period *start* and is blank on the older CLI.
+Both the legacy `Resets: <date>` output and the current `Quota period: <start> - <end>` range (CLI 0.4.1+) are parsed. **Reset Date** and **Days Until Reset** track the period *end* in either format. The quota refills at the end of the reset day in UTC. **Days Until Reset** counts whole days to that moment, and shows hours and minutes (`15h3m`) when less than a day is left; **Period Start** shows the period *start* and is blank on the older CLI.
 
 The `central` CLI is invoked **only** when at least one of these widgets is in your status line; its output is parsed once and cached for 180 seconds, so it never runs on every status-line render. The widgets appear under a **JetBrains Central** group in the widget picker.
 

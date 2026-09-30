@@ -32,7 +32,7 @@ const SAMPLE: JbCentralData = {
     remaining: '$196.04',
     periodStart: 'Jun 1, 2026',
     resetDate: 'Jun 30, 2026',
-    resetDays: 29
+    resetInMs: 29 * 86_400_000 + 3_600_000
 };
 
 interface WidgetCase {
@@ -95,8 +95,19 @@ describe('JetBrains Central widgets', () => {
 
     it('renders nothing for reset-days when the reset date was unparseable', () => {
         const widget = new JbCentralResetDaysWidget();
-        const context: RenderContext = { jbCentralData: { resetDate: 'garbage', resetDays: undefined } };
+        const context: RenderContext = { jbCentralData: { resetDate: 'garbage', resetInMs: undefined } };
         expect(widget.render(item(), context, DEFAULT_SETTINGS)).toBeNull();
+    });
+
+    it.each([
+        { resetInMs: 86_400_000, expected: '1d' },
+        { resetInMs: 86_400_000 - 60_000, expected: '23h59m' },
+        { resetInMs: 15 * 3_600_000 + 3 * 60_000, expected: '15h3m' },
+        { resetInMs: 42 * 60_000, expected: '42m' },
+        { resetInMs: 0, expected: '0m' }
+    ])('renders reset-days as $expected with $resetInMs ms left', ({ resetInMs, expected }) => {
+        const widget = new JbCentralResetDaysWidget();
+        expect(widget.render(item(true), { jbCentralData: { resetInMs } }, DEFAULT_SETTINGS)).toBe(expected);
     });
 });
 

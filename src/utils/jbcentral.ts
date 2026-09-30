@@ -34,12 +34,12 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
     'jbcentral-reset-days'
 ]);
 
-// The persisted fields are the raw strings parsed from the CLI. `resetDays` is
+// The persisted fields are the raw strings parsed from the CLI. `resetInMs` is
 // intentionally NOT cached — it is recomputed from `resetDate` on every read so
 // the countdown stays accurate even when served from a stale cache. A cache
 // entry may instead hold only `{ error }` — a short-lived diagnostic marker
 // written when a fetch fails, so the widget keeps showing why between renders.
-export type JbCentralCachedFields = Omit<JbCentralData, 'resetDays'>;
+export type JbCentralCachedFields = Omit<JbCentralData, 'resetInMs'>;
 
 // The string fields a successful `central quota` parse produces. Used to tell
 // real cached data apart from an `{ error }` marker.
@@ -92,42 +92,56 @@ function isEmptyData(data: JbCentralCachedFields): boolean {
     return Object.keys(data).length === 0;
 }
 
-export function computeResetDays(resetDate: string | undefined, now: number = Date.now()): number | undefined {
-    if (!resetDate) {
+// Start of a quota date ("Sep 30, 2026") as a UTC instant. The dates are UTC
+// calendar days: Central refills at the end of the reset day in UTC
+// (`refillNext` is 23:59:59.999Z), and formatEpochDate writes them in UTC.
+function quotaDayStartUtc(date: string | undefined): number | undefined {
+    if (!date) {
         return undefined;
     }
 
-    const resetMs = Date.parse(resetDate);
-    if (Number.isNaN(resetMs)) {
+    const localMs = Date.parse(date);
+    if (Number.isNaN(localMs)) {
         return undefined;
     }
 
-    return Math.max(0, Math.ceil((resetMs - now) / MS_PER_DAY));
+    const day = new Date(localMs);
+    return Date.UTC(day.getFullYear(), day.getMonth(), day.getDate());
+}
+
+// Time left until the quota refills at the end of the reset day.
+export function computeResetInMs(resetDate: string | undefined, now: number = Date.now()): number | undefined {
+    const resetDayStart = quotaDayStartUtc(resetDate);
+    if (resetDayStart === undefined) {
+        return undefined;
+    }
+
+    return Math.max(0, resetDayStart + MS_PER_DAY - now);
 }
 
 // How far through the quota period `now` is, as 0-100. The period runs from
-// the start of `periodStart` to the end of the `resetDate` day, both read in
-// local time like computeResetDays.
+// the start of the `periodStart` day to the end of the `resetDate` day.
 export function computePeriodElapsedPercent(
     periodStart: string | undefined,
     resetDate: string | undefined,
     now: number = Date.now()
 ): number | undefined {
-    if (!periodStart || !resetDate) {
+    const startMs = quotaDayStartUtc(periodStart);
+    const resetDayStart = quotaDayStartUtc(resetDate);
+    if (startMs === undefined || resetDayStart === undefined) {
         return undefined;
     }
 
-    const startMs = Date.parse(periodStart);
-    const endMs = Date.parse(resetDate) + MS_PER_DAY;
-    if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+    const endMs = resetDayStart + MS_PER_DAY;
+    if (endMs <= startMs) {
         return undefined;
     }
 
     return Math.max(0, Math.min(100, (now - startMs) / (endMs - startMs) * 100));
 }
 
-function withResetDays(data: JbCentralCachedFields): JbCentralData {
-    return { ...data, resetDays: computeResetDays(data.resetDate) };
+function withResetIn(data: JbCentralCachedFields): JbCentralData {
+    return { ...data, resetInMs: computeResetInMs(data.resetDate) };
 }
 
 export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
@@ -389,7 +403,7 @@ function staleDataOrError(
     writeCache: (data: JbCentralCachedFields) => void
 ): JbCentralData {
     if (cached && hasGoodData(cached.data)) {
-        return withResetDays(cached.data);
+        return withResetIn(cached.data);
     }
 
     writeCache({ error });
@@ -401,13 +415,13 @@ export function resolveJbCentralData(io: JbCentralFetchIO): JbCentralData | null
 
     // Fresh, real data — no CLI call.
     if (cached && hasGoodData(cached.data) && cached.ageSeconds < CACHE_MAX_AGE) {
-        return withResetDays(cached.data);
+        return withResetIn(cached.data);
     }
 
     // The CLI was tried recently — serve whatever we have rather than respawn.
     if (io.isLockActive(io.now)) {
         if (cached && hasGoodData(cached.data)) {
-            return withResetDays(cached.data);
+            return withResetIn(cached.data);
         }
         if (cached?.data.error) {
             return { error: cached.data.error };
@@ -429,7 +443,7 @@ export function resolveJbCentralData(io: JbCentralFetchIO): JbCentralData | null
     }
 
     io.writeCache(parsed);
-    return withResetDays(parsed);
+    return withResetIn(parsed);
 }
 
 export function fetchJbCentralData(): JbCentralData | null {

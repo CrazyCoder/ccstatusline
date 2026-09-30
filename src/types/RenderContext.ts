@@ -37,7 +37,7 @@ export interface JbCentralData {
     remaining?: string;
     periodStart?: string;
     resetDate?: string;
-    resetDays?: number;
+    resetInMs?: number;
     error?: JbCentralError;
 }
 
