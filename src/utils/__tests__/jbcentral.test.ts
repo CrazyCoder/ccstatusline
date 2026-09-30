@@ -120,10 +120,10 @@ describe('parseJbCentralOutput', () => {
         expect(parseJbCentralOutput(SAMPLE_OUTPUT_CREDITS)).toEqual({
             account: 'you@jetbrains.com',
             plan: 'JetBrains AI Ultimate',
-            usage: '11.98',
-            quota: '5000.00',
+            usage: '$11.98',
+            quota: '$5000.00',
             usagePercent: '0.2%',
-            remaining: '4988.02',
+            remaining: '$4988.02',
             periodStart: 'Jul 1, 2026',
             resetDate: 'Jul 31, 2026'
         });
@@ -205,10 +205,10 @@ describe('parseJbCentralJson', () => {
         expect(parseJbCentralJson(SAMPLE_OUTPUT_JSON)).toEqual({
             account: 'you@jetbrains.com',
             plan: 'JetBrains AI Ultimate',
-            usage: '11.98',
-            quota: '5000.00',
+            usage: '$11.98',
+            quota: '$5000.00',
             usagePercent: '0.2%',
-            remaining: '4988.02',
+            remaining: '$4988.02',
             periodStart: 'Jul 1, 2026',
             resetDate: 'Jul 31, 2026'
         });
@@ -222,7 +222,7 @@ describe('parseJbCentralJson', () => {
 
     it('computes remaining from used/max when tariffQuota is absent', () => {
         const parsed = parseJbCentralJson('{"usedDollars": "11.98", "maxDollars": "5000.00"}');
-        expect(parsed.remaining).toBe('4988.02');
+        expect(parsed.remaining).toBe('$4988.02');
     });
 
     it('omits the percentage when the quota is zero', () => {
@@ -238,8 +238,8 @@ describe('parseJbCentralJson', () => {
 
     it('tolerates numeric amounts', () => {
         const parsed = parseJbCentralJson('{"usedDollars": 11.98, "maxDollars": 5000}');
-        expect(parsed.usage).toBe('11.98');
-        expect(parsed.quota).toBe('5000');
+        expect(parsed.usage).toBe('$11.98');
+        expect(parsed.quota).toBe('$5000');
         expect(parsed.usagePercent).toBe('0.2%');
     });
 });
@@ -437,7 +437,7 @@ describe('resolveJbCentralData', () => {
         const h = makeIO({ runQuota: () => ({ ok: true, output: SAMPLE_OUTPUT_JSON, format: 'json' }) });
         const result = resolveJbCentralData(h.io);
         expect(result?.account).toBe('you@jetbrains.com');
-        expect(result?.remaining).toBe('4988.02');
+        expect(result?.remaining).toBe('$4988.02');
         expect(h.writes[0]?.resetDate).toBe('Jul 31, 2026');
     });
 

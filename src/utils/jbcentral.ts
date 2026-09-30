@@ -160,17 +160,19 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
 
     // Dollar plans: "Usage: $3.96 / $200.00 (2.0%)"
     // Credit plans (rebranded `central` CLI): "Usage: 11.98 / 5000.00 credits (0.2%)"
-    const usageMatch = /Usage:\s*(\$?[\d.,]+)\s*\/\s*(\$?[\d.,]+)(?:\s+credits)?\s*\(([\d.]+%)\)/.exec(text);
+    // A credit is a dollar (the JSON output names them usedDollars), so amounts
+    // always carry "$", matching parseJbCentralJson.
+    const usageMatch = /Usage:\s*\$?([\d.,]+)\s*\/\s*\$?([\d.,]+)(?:\s+credits)?\s*\(([\d.]+%)\)/.exec(text);
     if (usageMatch) {
-        result.usage = usageMatch[1];
-        result.quota = usageMatch[2];
+        result.usage = `$${usageMatch[1]}`;
+        result.quota = `$${usageMatch[2]}`;
         result.usagePercent = usageMatch[3];
     }
 
     // "Remaining: $196.04" or "Remaining: 4988.02 credits"
-    const remainingMatch = /Remaining:\s*(\$?[\d.,]+)/.exec(text);
+    const remainingMatch = /Remaining:\s*\$?([\d.,]+)/.exec(text);
     if (remainingMatch) {
-        result.remaining = remainingMatch[1];
+        result.remaining = `$${remainingMatch[1]}`;
     }
 
     // Legacy (jbcentral < 0.4.1): "Resets: Jun 30, 2026"
@@ -255,13 +257,14 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
         result.plan = quota.licenseName;
     }
 
+    // The JSON amounts are dollars, so they carry "$" like parseJbCentralOutput.
     const usage = asAmount(quota.usedDollars);
     const max = asAmount(quota.maxDollars);
     if (usage !== undefined) {
-        result.usage = usage;
+        result.usage = `$${usage}`;
     }
     if (max !== undefined) {
-        result.quota = max;
+        result.quota = `$${max}`;
     }
 
     const usedNum = Number(usage);
@@ -275,7 +278,7 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
     const remaining = asAmount(quota.tariffQuota?.available)
         ?? (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
     if (remaining !== undefined) {
-        result.remaining = remaining;
+        result.remaining = `$${remaining}`;
     }
 
     const periodStart = formatEpochDate(quota.refillLast);
