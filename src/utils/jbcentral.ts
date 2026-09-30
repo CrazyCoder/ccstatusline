@@ -105,6 +105,27 @@ export function computeResetDays(resetDate: string | undefined, now: number = Da
     return Math.max(0, Math.ceil((resetMs - now) / MS_PER_DAY));
 }
 
+// How far through the quota period `now` is, as 0-100. The period runs from
+// the start of `periodStart` to the end of the `resetDate` day, both read in
+// local time like computeResetDays.
+export function computePeriodElapsedPercent(
+    periodStart: string | undefined,
+    resetDate: string | undefined,
+    now: number = Date.now()
+): number | undefined {
+    if (!periodStart || !resetDate) {
+        return undefined;
+    }
+
+    const startMs = Date.parse(periodStart);
+    const endMs = Date.parse(resetDate) + MS_PER_DAY;
+    if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+        return undefined;
+    }
+
+    return Math.max(0, Math.min(100, (now - startMs) / (endMs - startMs) * 100));
+}
+
 function withResetDays(data: JbCentralCachedFields): JbCentralData {
     return { ...data, resetDays: computeResetDays(data.resetDate) };
 }

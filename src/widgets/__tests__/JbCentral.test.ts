@@ -99,3 +99,55 @@ describe('JetBrains Central widgets', () => {
         expect(widget.render(item(), context, DEFAULT_SETTINGS)).toBeNull();
     });
 });
+
+describe('JetBrains Central usage percent bar modes', () => {
+    const widget = new JbCentralUsagePercentWidget();
+    const context: RenderContext = { jbCentralData: { ...SAMPLE, usagePercent: '8.0%' } };
+
+    function barItem(metadata: Record<string, string>, rawValue = true): WidgetItem {
+        return { id: 'jbc', type: 'jbcentral-usage-percent', rawValue, metadata };
+    }
+
+    it('renders the short bar with the percentage', () => {
+        expect(widget.render(barItem({ display: 'slider' }), context, DEFAULT_SETTINGS)).toBe('▓░░░░░░░░░ 8.0%');
+    });
+
+    it('renders the short bar alone', () => {
+        expect(widget.render(barItem({ display: 'slider-only' }), context, DEFAULT_SETTINGS)).toBe('▓░░░░░░░░░');
+    });
+
+    it('renders the medium and long bars', () => {
+        expect(widget.render(barItem({ display: 'progress-short' }), context, DEFAULT_SETTINGS))
+            .toBe(`[${'█'.repeat(1)}${'░'.repeat(15)}] 8.0%`);
+        expect(widget.render(barItem({ display: 'progress' }), context, DEFAULT_SETTINGS))
+            .toBe(`[${'█'.repeat(3)}${'░'.repeat(29)}] 8.0%`);
+    });
+
+    it('honors the percent number format', () => {
+        const settings = { ...DEFAULT_SETTINGS, numberFormat: { percent: { style: 'whole' as const } } };
+        expect(widget.render(barItem({ display: 'slider' }), context, settings)).toBe('▓░░░░░░░░░ 8%');
+    });
+
+    it('shows the remaining percentage when inverted', () => {
+        expect(widget.render(barItem({ display: 'slider', invert: 'true' }), context, DEFAULT_SETTINGS)).toBe('▓▓▓▓▓▓▓▓▓░ 92.0%');
+        expect(widget.render(barItem({ invert: 'true' }, false), context, DEFAULT_SETTINGS)).toBe('Usage: 92.0%');
+    });
+
+    it('draws the period cursor from the quota period', () => {
+        const rendered = widget.render(barItem({ display: 'slider-only', cursor: 'true' }), context, DEFAULT_SETTINGS);
+        expect(rendered).toHaveLength(10);
+        expect(rendered).toContain('│');
+    });
+
+    it('keeps diagnostics and absent data in bar modes', () => {
+        expect(widget.render(barItem({ display: 'slider' }), { jbCentralData: { error: 'timeout' } }, DEFAULT_SETTINGS)).toBe('[Timeout]');
+        expect(widget.render(barItem({ display: 'slider' }), { jbCentralData: null }, DEFAULT_SETTINGS)).toBeNull();
+    });
+
+    it('cycles through the bar modes and offers the usage keybinds', () => {
+        const first = widget.handleEditorAction('toggle-progress', barItem({}));
+        expect(first?.metadata?.display).toBe('progress');
+        expect(widget.getCustomKeybinds(barItem({ display: 'slider' })).map(k => k.key)).toEqual(['p', 'u', 't']);
+        expect(widget.getEditorDisplay(barItem({ display: 'slider' })).modifierText).toBe('(short bar, used)');
+    });
+});

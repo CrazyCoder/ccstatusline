@@ -12,6 +12,7 @@ import type {
 } from '../jbcentral';
 import {
     classifyQuotaError,
+    computePeriodElapsedPercent,
     computeResetDays,
     getJbCentralErrorMessage,
     hasJbCentralWidgets,
@@ -466,5 +467,26 @@ describe('computeResetDays', () => {
 
     it('clamps past reset dates to zero', () => {
         expect(computeResetDays('Jan 1, 2020', now)).toBe(0);
+    });
+});
+
+describe('computePeriodElapsedPercent', () => {
+    it('returns undefined for missing, unparseable or inverted periods', () => {
+        const now = new Date(2026, 5, 16).getTime();
+        expect(computePeriodElapsedPercent(undefined, 'Jun 30, 2026', now)).toBeUndefined();
+        expect(computePeriodElapsedPercent('Jun 1, 2026', undefined, now)).toBeUndefined();
+        expect(computePeriodElapsedPercent('garbage', 'Jun 30, 2026', now)).toBeUndefined();
+        expect(computePeriodElapsedPercent('Jul 5, 2026', 'Jun 30, 2026', now)).toBeUndefined();
+    });
+
+    it('measures the period through the end of the reset day', () => {
+        // Jun 1 00:00 to Jul 1 00:00 is 30 days; Jun 16 00:00 is day 15.
+        const now = new Date(2026, 5, 16).getTime();
+        expect(computePeriodElapsedPercent('Jun 1, 2026', 'Jun 30, 2026', now)).toBeCloseTo(50, 5);
+    });
+
+    it('clamps to 0-100 outside the period', () => {
+        expect(computePeriodElapsedPercent('Jun 1, 2026', 'Jun 30, 2026', new Date(2026, 4, 1).getTime())).toBe(0);
+        expect(computePeriodElapsedPercent('Jun 1, 2026', 'Jun 30, 2026', new Date(2026, 7, 1).getTime())).toBe(100);
     });
 });
