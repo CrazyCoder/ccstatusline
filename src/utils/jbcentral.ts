@@ -296,11 +296,11 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
     }
 
     // The plan's quota plus any top-up, like the text output's "Remaining:".
-    const tariffLeft = asAmount(quota.tariffQuota?.available);
-    const topUpLeft = Number(asAmount(quota.topUpQuota?.available));
-    const remaining = tariffLeft !== undefined && topUpLeft > 0 && Number.isFinite(Number(tariffLeft))
-        ? (Number(tariffLeft) + topUpLeft).toFixed(2)
-        : tariffLeft ?? (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
+    const bucketsLeft = Number(asAmount(quota.tariffQuota?.available))
+        + Number(asAmount(quota.topUpQuota?.available) ?? 0);
+    const remaining = Number.isFinite(bucketsLeft)
+        ? bucketsLeft.toFixed(2)
+        : (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
     if (remaining !== undefined) {
         result.remaining = `$${remaining}`;
     }
@@ -401,16 +401,13 @@ export function runQuotaCli(exec: QuotaExec): QuotaResult {
     return runTextQuota(exec, 'jbcentral');
 }
 
-// Status line polling, which the CLI's analytics must not count as a person
-// running a command. A CLI that doesn't know the value ignores it.
-export function quotaCliEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-    return { ...env, CALLER: 'automation' };
-}
-
 function runJbCentralQuota(): QuotaResult {
     return runQuotaCli((bin, args) => execFileSync(bin, args, {
         encoding: 'utf8',
-        env: quotaCliEnv(),
+        // Status line polling, which the CLI's analytics must not count as a
+        // person running a command. A CLI that doesn't know the value warns on
+        // stderr and treats the call as a plain CLI run.
+        env: { ...process.env, CALLER: 'automation' },
         timeout: CLI_TIMEOUT_MS,
         stdio: ['ignore', 'pipe', 'ignore'],
         windowsHide: true

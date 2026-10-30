@@ -20,7 +20,6 @@ import {
     parseJbCentralJson,
     parseJbCentralOutput,
     prefetchJbCentralDataIfNeeded,
-    quotaCliEnv,
     resolveJbCentralData,
     runQuotaCli
 } from '../jbcentral';
@@ -238,9 +237,9 @@ describe('parseJbCentralJson', () => {
         expect(parsed.remaining).toBe('$30.75');
     });
 
-    it('keeps the tariff amount as printed when there is no top-up', () => {
-        const parsed = parseJbCentralJson('{"tariffQuota": {"available": "4823.63"}, "topUpQuota": {"available": "0.00"}}');
-        expect(parsed.remaining).toBe('$4823.63');
+    it('uses the tariff amount alone without a top-up', () => {
+        expect(parseJbCentralJson('{"tariffQuota": {"available": "4823.63"}, "topUpQuota": {"available": "0.00"}}').remaining).toBe('$4823.63');
+        expect(parseJbCentralJson('{"tariffQuota": {"available": "4823.63"}}').remaining).toBe('$4823.63');
     });
 
     it('marks a Central Server session, which reports no amounts', () => {
@@ -339,12 +338,6 @@ describe('runQuotaCli', () => {
             throw Object.assign(new Error('timed out'), { killed: true, signal: 'SIGTERM' });
         });
         expect(result).toEqual({ ok: false, error: 'timeout' });
-    });
-});
-
-describe('quotaCliEnv', () => {
-    it('declares the call as automation and keeps the rest of the environment', () => {
-        expect(quotaCliEnv({ PATH: '/bin', CALLER: 'test' })).toEqual({ PATH: '/bin', CALLER: 'automation' });
     });
 });
 

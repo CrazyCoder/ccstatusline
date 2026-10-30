@@ -69,7 +69,7 @@ Ten widgets that surface your JetBrains AI quota, parsed from the `central quota
 
 **Usage %** has the same display modes as the Usage widgets. Press `p` to cycle through a long bar, a medium bar, a short bar with the percentage (`▓░░░░░░░░░ 8%`) and the short bar alone. Press `u` to show the remaining quota instead of the used quota. In a bar mode, press `t` to add a cursor that marks how far the quota period has run.
 
-**Remaining** includes any top-up. **Daily Budget** divides it by the days left in the period, today included, so you reach the reset with the quota used up.
+**Remaining** includes any top-up. **Daily Budget** divides it by the days left in the period, today included, so you reach the reset with the quota used up. What you already spent today is not added back, so the figure falls as you spend.
 
 A JetBrains Central Server session has limits that its administrator manages and reports no amounts, so the widgets stay blank there.
 
