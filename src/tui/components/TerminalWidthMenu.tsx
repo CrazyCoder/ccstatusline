@@ -6,7 +6,10 @@ import {
 import React, { useState } from 'react';
 
 import type { FlexMode } from '../../types/FlexMode';
-import type { Settings } from '../../types/Settings';
+import {
+    DEFAULT_SETTINGS,
+    type Settings
+} from '../../types/Settings';
 import { shouldInsertInput } from '../../utils/input-guards';
 
 import {
@@ -23,9 +26,9 @@ export function getTerminalWidthSelectionIndex(selectedOption: FlexMode): number
 }
 
 export function validateCompactThresholdInput(value: string): string | null {
-    const parsedValue = parseInt(value, 10);
+    const parsedValue = Number.parseInt(value, 10);
 
-    if (isNaN(parsedValue)) {
+    if (Number.isNaN(parsedValue)) {
         return 'Please enter a valid number';
     }
 
@@ -40,17 +43,24 @@ export function buildTerminalWidthItems(
     selectedOption: FlexMode,
     compactThreshold: number
 ): ListEntry<FlexMode>[] {
+    const getSublabel = (option: FlexMode): string | undefined => {
+        if (option === selectedOption) {
+            return '(active)';
+        }
+        return option === DEFAULT_SETTINGS.flexMode ? '(default)' : undefined;
+    };
+
     return [
         {
             value: 'full',
             label: 'Full width always',
-            sublabel: selectedOption === 'full' ? '(active)' : undefined,
-            description: 'Uses the full terminal width minus 4 characters for terminal padding. If the auto-compact message appears, it may cause the line to wrap.\n\nNOTE: If /ide integration is enabled, it is not recommended to use this mode.'
+            sublabel: getSublabel('full'),
+            description: 'Uses the full terminal width minus 6 characters for terminal padding. If the auto-compact message appears, it may cause the line to wrap.\n\nNOTE: If /ide integration is enabled, it is not recommended to use this mode.'
         },
         {
             value: 'full-minus-40',
             label: 'Full width minus 40',
-            sublabel: selectedOption === 'full-minus-40' ? '(active)' : '(default)',
+            sublabel: getSublabel('full-minus-40'),
             description: 'Leaves a gap to the right of the status line to accommodate the auto-compact message. This prevents wrapping but may leave unused space. This limitation exists because we cannot detect when the message will appear.'
         },
         {
@@ -89,7 +99,7 @@ export const TerminalWidthMenu: React.FC<TerminalWidthMenuProps> = ({
                 if (error) {
                     setValidationError(error);
                 } else {
-                    const value = parseInt(thresholdInput, 10);
+                    const value = Number.parseInt(thresholdInput, 10);
                     setCompactThreshold(value);
 
                     const updatedSettings = {

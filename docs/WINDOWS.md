@@ -105,6 +105,10 @@ winget install DEVCOM.JetBrainsMonoNerdFont
 # or [Google Fonts](https://fonts.google.com/specimen/JetBrains+Mono)
 ```
 
+### Helper Executables
+
+Git, JJ, GitHub/GitLab CLI, SSH, and the UTF-8 code-page helper are resolved from absolute directories in `PATH`. Empty and relative PATH entries are skipped, so a helper executable placed only in the current project directory is not selected. Install the tools you use in an absolute directory listed in `PATH`.
+
 ### Path Handling
 
 `ccstatusline` automatically handles Windows-specific paths:
@@ -112,6 +116,7 @@ winget install DEVCOM.JetBrainsMonoNerdFont
 - Current Working Directory widget displays Windows-style paths correctly
 - Full support for mapped network drives and UNC paths
 - Handles Windows drive letters (C:, D:, etc.)
+- Current Working Dir link mode builds Windows `file:///C:/...` and UNC `file://server/share/...` targets with reserved characters encoded
 
 ## Windows Troubleshooting
 
