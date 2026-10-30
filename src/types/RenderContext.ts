@@ -44,6 +44,8 @@ export interface JbCentralData {
     periodStart?: string;
     resetDate?: string;
     resetInMs?: number;
+    // Central Server sets the limits, so the CLI reports no amounts to show.
+    managed?: boolean;
     error?: JbCentralError;
 }
 

@@ -14,6 +14,7 @@ import type {
     WidgetItem
 } from '../../types/Widget';
 import { JbCentralAccountWidget } from '../JbCentralAccount';
+import { JbCentralDailyBudgetWidget } from '../JbCentralDailyBudget';
 import { JbCentralPeriodStartWidget } from '../JbCentralPeriodStart';
 import { JbCentralPlanWidget } from '../JbCentralPlan';
 import { JbCentralQuotaWidget } from '../JbCentralQuota';
@@ -49,6 +50,7 @@ const CASES: WidgetCase[] = [
     { name: 'quota', widget: new JbCentralQuotaWidget(), labeled: 'Quota: $200.00', raw: '$200.00' },
     { name: 'usage-percent', widget: new JbCentralUsagePercentWidget(), labeled: 'Usage: 2.0%', raw: '2.0%' },
     { name: 'remaining', widget: new JbCentralRemainingWidget(), labeled: 'Remaining: $196.04', raw: '$196.04' },
+    { name: 'daily-budget', widget: new JbCentralDailyBudgetWidget(), labeled: 'Daily Budget: $6.53', raw: '$6.53' },
     { name: 'period-start', widget: new JbCentralPeriodStartWidget(), labeled: 'Period start: Jun 1, 2026', raw: 'Jun 1, 2026' },
     { name: 'reset-date', widget: new JbCentralResetDateWidget(), labeled: 'Resets: Jun 30, 2026', raw: 'Jun 30, 2026' },
     { name: 'reset-days', widget: new JbCentralResetDaysWidget(), labeled: 'Resets in: 29d', raw: '29d' }
@@ -85,6 +87,10 @@ describe('JetBrains Central widgets', () => {
     it.each(CASES)('shows the diagnostic for $name even with rawValue enabled', ({ widget }) => {
         const context: RenderContext = { jbCentralData: { error: 'not-found' } };
         expect(widget.render(item(true), context, DEFAULT_SETTINGS)).toBe('[central not found]');
+    });
+
+    it.each(CASES)('renders $name as null for a Central Server session', ({ widget }) => {
+        expect(widget.render(item(), { jbCentralData: { managed: true } }, DEFAULT_SETTINGS)).toBeNull();
     });
 
     it('all widgets report the JetBrains Central category', () => {

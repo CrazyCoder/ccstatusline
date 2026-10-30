@@ -29,6 +29,7 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
     'jbcentral-quota',
     'jbcentral-usage-percent',
     'jbcentral-remaining',
+    'jbcentral-daily-budget',
     'jbcentral-period-start',
     'jbcentral-reset-date',
     'jbcentral-reset-days'
@@ -41,10 +42,10 @@ const JB_CENTRAL_WIDGET_TYPES = new Set<string>([
 // written when a fetch fails, so the widget keeps showing why between renders.
 export type JbCentralCachedFields = Omit<JbCentralData, 'resetInMs'>;
 
-// The string fields a successful `central quota` parse produces. Used to tell
-// real cached data apart from an `{ error }` marker.
+// The fields a successful `central quota` parse produces. Used to tell real
+// cached data apart from an `{ error }` marker.
 const REAL_DATA_FIELDS: (keyof JbCentralCachedFields)[] = [
-    'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'periodStart', 'resetDate'
+    'account', 'plan', 'usage', 'quota', 'usagePercent', 'remaining', 'periodStart', 'resetDate', 'managed'
 ];
 
 function hasGoodData(data: JbCentralCachedFields): boolean {
@@ -119,6 +120,18 @@ export function computeResetInMs(resetDate: string | undefined, now: number = Da
     return Math.max(0, resetDayStart + MS_PER_DAY - now);
 }
 
+// What's left of the quota per day left in the period, as "$6.53". Today
+// counts, so the last day shows everything that's left.
+export function computeDailyBudget(data: Pick<JbCentralData, 'remaining' | 'resetInMs'>): string | undefined {
+    const remaining = Number.parseFloat((data.remaining ?? '').replace(/[$,]/g, ''));
+    if (Number.isNaN(remaining) || data.resetInMs === undefined) {
+        return undefined;
+    }
+
+    const daysLeft = Math.max(1, Math.ceil(data.resetInMs / MS_PER_DAY));
+    return `$${(remaining / daysLeft).toFixed(2)}`;
+}
+
 // How far through the quota period `now` is, as 0-100. The period runs from
 // the start of the `periodStart` day to the end of the `resetDate` day.
 export function computePeriodElapsedPercent(
@@ -181,12 +194,13 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
         result.resetDate = resetsMatch[1].trim();
     }
 
-    // Current (jbcentral >= 0.4.1): "Quota period: Jun 1, 2026 - Jun 30, 2026".
-    // The period *end* is the reset date (kept under `resetDate` so the Reset
-    // Date / Days Until Reset widgets work unchanged across CLI versions); the
-    // *start* is surfaced separately. The date format is "MMM D, YYYY" — no
-    // internal hyphen — so the first " - " is an unambiguous start/end split.
-    const periodMatch = /Quota period:\s*(.+?)\s+-\s+(.+)/.exec(text);
+    // Current (jbcentral >= 0.4.1): "Quota period: Jun 1, 2026 - Jun 30, 2026",
+    // or "Limit period: ..." for seat-based access. The period *end* is the
+    // reset date (kept under `resetDate` so the Reset Date / Days Until Reset
+    // widgets work unchanged across CLI versions); the *start* is surfaced
+    // separately. The date format is "MMM D, YYYY" — no internal hyphen — so
+    // the first " - " is an unambiguous start/end split.
+    const periodMatch = /(?:Quota|Limit) period:\s*(.+?)\s+-\s+(.+)/.exec(text);
     if (periodMatch?.[1] && periodMatch[2]) {
         result.periodStart = periodMatch[1].trim();
         result.resetDate = periodMatch[2].trim();
@@ -200,9 +214,11 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
 interface QuotaJson {
     email?: unknown;
     licenseName?: unknown;
+    managed?: unknown;
     usedDollars?: unknown;
     maxDollars?: unknown;
     tariffQuota?: { available?: unknown };
+    topUpQuota?: { available?: unknown };
     refillLast?: unknown;
     refillNext?: unknown;
 }
@@ -247,6 +263,10 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
     const quota = json as QuotaJson;
     const result: JbCentralCachedFields = {};
 
+    if (quota.managed === true) {
+        result.managed = true;
+    }
+
     // Only assign fields that are actually present, so an unusable payload
     // reads as empty (parse-error) and cache entries stay minimal, like the
     // text parser's output.
@@ -275,8 +295,12 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
         result.usagePercent = `${(usedNum / maxNum * 100).toFixed(1)}%`;
     }
 
-    const remaining = asAmount(quota.tariffQuota?.available)
-        ?? (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
+    // The plan's quota plus any top-up, like the text output's "Remaining:".
+    const tariffLeft = asAmount(quota.tariffQuota?.available);
+    const topUpLeft = Number(asAmount(quota.topUpQuota?.available));
+    const remaining = tariffLeft !== undefined && topUpLeft > 0 && Number.isFinite(Number(tariffLeft))
+        ? (Number(tariffLeft) + topUpLeft).toFixed(2)
+        : tariffLeft ?? (amountsKnown ? (maxNum - usedNum).toFixed(2) : undefined);
     if (remaining !== undefined) {
         result.remaining = `$${remaining}`;
     }
@@ -377,9 +401,16 @@ export function runQuotaCli(exec: QuotaExec): QuotaResult {
     return runTextQuota(exec, 'jbcentral');
 }
 
+// Status line polling, which the CLI's analytics must not count as a person
+// running a command. A CLI that doesn't know the value ignores it.
+export function quotaCliEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+    return { ...env, CALLER: 'automation' };
+}
+
 function runJbCentralQuota(): QuotaResult {
     return runQuotaCli((bin, args) => execFileSync(bin, args, {
         encoding: 'utf8',
+        env: quotaCliEnv(),
         timeout: CLI_TIMEOUT_MS,
         stdio: ['ignore', 'pipe', 'ignore'],
         windowsHide: true

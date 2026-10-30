@@ -12,6 +12,7 @@ import type {
 } from '../jbcentral';
 import {
     classifyQuotaError,
+    computeDailyBudget,
     computePeriodElapsedPercent,
     computeResetInMs,
     getJbCentralErrorMessage,
@@ -19,6 +20,7 @@ import {
     parseJbCentralJson,
     parseJbCentralOutput,
     prefetchJbCentralDataIfNeeded,
+    quotaCliEnv,
     resolveJbCentralData,
     runQuotaCli
 } from '../jbcentral';
@@ -129,6 +131,12 @@ describe('parseJbCentralOutput', () => {
         });
     });
 
+    it('parses the "Limit period:" range of seat-based access', () => {
+        const parsed = parseJbCentralOutput(SAMPLE_OUTPUT_PERIOD.replace('Quota period:', 'Limit period:'));
+        expect(parsed.periodStart).toBe('Jun 1, 2026');
+        expect(parsed.resetDate).toBe('Jun 30, 2026');
+    });
+
     it('does not match the "Quota:" usage line as a period range', () => {
         // "Quota:  $3.96 / ..." must not be mistaken for "Quota period: ...".
         const parsed = parseJbCentralOutput(SAMPLE_OUTPUT_PERIOD);
@@ -225,6 +233,20 @@ describe('parseJbCentralJson', () => {
         expect(parsed.remaining).toBe('$4988.02');
     });
 
+    it('adds the top-up to the remaining amount, like the text output', () => {
+        const parsed = parseJbCentralJson('{"tariffQuota": {"available": "10.50"}, "topUpQuota": {"available": "20.25"}}');
+        expect(parsed.remaining).toBe('$30.75');
+    });
+
+    it('keeps the tariff amount as printed when there is no top-up', () => {
+        const parsed = parseJbCentralJson('{"tariffQuota": {"available": "4823.63"}, "topUpQuota": {"available": "0.00"}}');
+        expect(parsed.remaining).toBe('$4823.63');
+    });
+
+    it('marks a Central Server session, which reports no amounts', () => {
+        expect(parseJbCentralJson('{"managed": true}')).toEqual({ managed: true });
+    });
+
     it('omits the percentage when the quota is zero', () => {
         const parsed = parseJbCentralJson('{"usedDollars": "0.00", "maxDollars": "0.00"}');
         expect(parsed.usagePercent).toBeUndefined();
@@ -317,6 +339,12 @@ describe('runQuotaCli', () => {
             throw Object.assign(new Error('timed out'), { killed: true, signal: 'SIGTERM' });
         });
         expect(result).toEqual({ ok: false, error: 'timeout' });
+    });
+});
+
+describe('quotaCliEnv', () => {
+    it('declares the call as automation and keeps the rest of the environment', () => {
+        expect(quotaCliEnv({ PATH: '/bin', CALLER: 'test' })).toEqual({ PATH: '/bin', CALLER: 'automation' });
     });
 });
 
@@ -441,6 +469,18 @@ describe('resolveJbCentralData', () => {
         expect(h.writes[0]?.resetDate).toBe('Jul 31, 2026');
     });
 
+    it('caches a Central Server session as data, not as a parse error', () => {
+        const { io, writes } = makeIO({ runQuota: () => ({ ok: true, output: '{"managed": true}', format: 'json' }) });
+        expect(resolveJbCentralData(io)?.error).toBeUndefined();
+        expect(writes).toEqual([{ managed: true }]);
+    });
+
+    it('serves a cached Central Server session without spawning the CLI', () => {
+        const { io, quotaCalls } = makeIO({ readCache: () => ({ data: { managed: true }, ageSeconds: 10 }) });
+        expect(resolveJbCentralData(io)?.managed).toBe(true);
+        expect(quotaCalls()).toBe(0);
+    });
+
     it('persists a parse-error when json-format output is not valid JSON', () => {
         const h = makeIO({ runQuota: () => ({ ok: true, output: 'not json', format: 'json' }) });
         expect(resolveJbCentralData(h.io)).toEqual({ error: 'parse-error' });
@@ -471,6 +511,29 @@ describe('computeResetInMs', () => {
 
     it('clamps past reset dates to zero', () => {
         expect(computeResetInMs('Jan 1, 2020', now)).toBe(0);
+    });
+});
+
+describe('computeDailyBudget', () => {
+    const DAY = 86_400_000;
+
+    it('returns undefined without a remaining amount or a reset date', () => {
+        expect(computeDailyBudget({ resetInMs: DAY })).toBeUndefined();
+        expect(computeDailyBudget({ remaining: '$10.00' })).toBeUndefined();
+        expect(computeDailyBudget({ remaining: 'n/a', resetInMs: DAY })).toBeUndefined();
+    });
+
+    it('counts today as a day of the period', () => {
+        expect(computeDailyBudget({ remaining: '$300.00', resetInMs: 2 * DAY + 3_600_000 })).toBe('$100.00');
+    });
+
+    it('shows everything that is left on the last day', () => {
+        expect(computeDailyBudget({ remaining: '$12.34', resetInMs: 3_600_000 })).toBe('$12.34');
+        expect(computeDailyBudget({ remaining: '$12.34', resetInMs: 0 })).toBe('$12.34');
+    });
+
+    it('reads amounts with a thousands separator', () => {
+        expect(computeDailyBudget({ remaining: '$4,823.63', resetInMs: DAY })).toBe('$4823.63');
     });
 });
 
