@@ -209,8 +209,9 @@ export function parseJbCentralOutput(rawOutput: string): JbCentralCachedFields {
     return result;
 }
 
-// `central quota --json` payload (v1.0.1+). Amounts are strings in practice
-// ("11.98"), but numbers are tolerated. `refillLast`/`refillNext` are epoch ms.
+// `central quota --json` payload (v1.0.1+), with the camelCase keys of
+// v1.0.1 to v2.9. Amounts are strings in practice ("11.98"), but numbers are
+// tolerated. `refillLast`/`refillNext` are epoch ms.
 interface QuotaJson {
     email?: unknown;
     licenseName?: unknown;
@@ -250,6 +251,16 @@ function formatEpochDate(ms: unknown): string | undefined {
     });
 }
 
+// central v2.10.0+ prints the same payload with snake_case keys
+// ("used_dollars", "tariff_quota"). The bucket keys are single words in both.
+function camelCaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        result[key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())] = value;
+    }
+    return result;
+}
+
 export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
     let json: unknown;
     try {
@@ -260,7 +271,7 @@ export function parseJbCentralJson(rawOutput: string): JbCentralCachedFields {
     if (json === null || typeof json !== 'object' || Array.isArray(json)) {
         return {};
     }
-    const quota = json as QuotaJson;
+    const quota = camelCaseKeys(json as Record<string, unknown>) as QuotaJson;
     const result: JbCentralCachedFields = {};
 
     if (quota.managed === true) {

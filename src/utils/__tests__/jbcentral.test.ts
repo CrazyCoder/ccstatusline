@@ -87,6 +87,27 @@ const SAMPLE_OUTPUT_JSON = `{
   "refillNext": 1785542399999
 }`;
 
+// The same payload from central v2.10.0+, which prints snake_case keys.
+const SAMPLE_OUTPUT_JSON_SNAKE = `{
+  "email": "you@jetbrains.com",
+  "license_name": "JetBrains AI Ultimate",
+  "managed": false,
+  "used_dollars": "11.98",
+  "max_dollars": "5000.00",
+  "tariff_quota": {
+    "current": "11.98",
+    "maximum": "5000.00",
+    "available": "4988.02"
+  },
+  "top_up_quota": {
+    "current": "0.00",
+    "maximum": "0.00",
+    "available": "0.00"
+  },
+  "refill_last": 1782864000000,
+  "refill_next": 1785542399999
+}`;
+
 function lines(...types: string[]): WidgetItem[][] {
     return [types.map((type, index) => ({ id: String(index), type }))];
 }
@@ -219,6 +240,11 @@ describe('parseJbCentralJson', () => {
             periodStart: 'Jul 1, 2026',
             resetDate: 'Jul 31, 2026'
         });
+    });
+
+    it('reads the snake_case keys of central v2.10.0+ the same way', () => {
+        expect(parseJbCentralJson(SAMPLE_OUTPUT_JSON_SNAKE)).toEqual(parseJbCentralJson(SAMPLE_OUTPUT_JSON));
+        expect(parseJbCentralJson('{"tariff_quota": {"available": "10.50"}, "top_up_quota": {"available": "20.25"}}').remaining).toBe('$30.75');
     });
 
     it('formats refill timestamps in UTC so the period end does not roll into the next day', () => {
