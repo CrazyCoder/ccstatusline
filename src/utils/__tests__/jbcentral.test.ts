@@ -66,7 +66,7 @@ Quota:  11.98 / 5000.00 credits used (4988.02 remaining)
 Quota period: Jul 1, 2026 - Jul 31, 2026
 `;
 
-// `central quota --json` output (central v1.0.1+).
+// `central quota --json` output with camelCase keys (central v1.0.1 to v2.9).
 const SAMPLE_OUTPUT_JSON = `{
   "email": "you@jetbrains.com",
   "licenseName": "JetBrains AI Ultimate",
